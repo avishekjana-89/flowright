@@ -63,6 +63,13 @@ How to load the extension into Chrome (developer flow):
 3. Click **Load unpacked** and select the `extension/` directory from this repo.
 4. Click the extension icon to open the popup. Use **Download** to export `recorded_steps.json`.
 
+Right-click assertions
+
+- While the recorder extension is loaded you can right-click any element on a page and use the extension's context-menu to create assertion steps (no extra UI required).
+- Available context-menu actions include: "Verify Element Text", "Verify Element Value", "Verify Element Visible", "Verify Element Disabled", "Verify Element Attribute", "Verify Page Title", and "Verify Element Count" (and a few helper actions like "Get TextContent").
+- Workflow: right-click the target element -> choose the desired "Verify..." action -> the extension records an assertion step (it captures locators, a small DOM snapshot and frame information for elements inside iframes). Open the recorder popup or download `recorded_steps.json` to see/import the generated assertion step into the webapp.
+- Notes: if the element is inside an iframe the extension attempts to attach frameInfo so the runner can target the correct frame; the recorded assertion step will appear alongside other recorded UI steps and can be edited in the Web UI before saving/importing.
+
 The downloaded `recorded_steps.json` is a JSON array of steps compatible with the webapp's testcase creation upload form.
 
 ## Importing recorded steps into a testcase
