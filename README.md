@@ -36,7 +36,7 @@ Build the image and run with docker-compose (the repo contains `Dockerfile` and 
 
 ```bash
 # build locally (optional)
-docker build -t Flowright:latest .
+docker build -t flowright:latest .
 
 # start services with docker-compose (from project root)
 docker compose up -d
