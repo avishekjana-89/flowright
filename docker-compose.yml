@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   flowwright:
-    image: flowwright:latest
+    image: flowright:latest
     ipc: host
     privileged: true
     ports:
