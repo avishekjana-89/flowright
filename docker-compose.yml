@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  flowwright:
+    image: flowwright:latest
+    ipc: host
+    privileged: true
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # persist runtime data and DBs on host
+      - ./webapp/data:/app/webapp/data
+      - ./webapp/databases:/app/webapp/databases
+      - ./webapp/runs:/app/webapp/runs
+      - ./webapp/steps:/app/webapp/steps
+      - ./webapp/objects:/app/webapp/objects
+      - ./webapp/files:/app/webapp/files
+      - ./keywords:/app/keywords
+    restart: unless-stopped
+    tty: true

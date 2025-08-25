@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Custom Keyword{% endblock %}
+
+{% block header %}Create Custom Keyword{% endblock %}
+
+{% block content %}
+<div class="card">
+    <form method="post" action="/keywords/create">
+        <label>Filename (no path, .py will be appended)</label>
+        <input name="filename" placeholder="filename" />
+
+        <label>Module body (required) — sample async code provided</label>
+        <!-- sample module content stored in a template element (not visible). ACE editor will load this. -->
+        <script id="body-sample" type="text/plain">{% raw %}# Example async keyword implementation
+# `page` is the Playwright page/context and `step` is the step dict.
+# The runner will call this function as: await func(page, step) when it's async
+# Return a dict like {'success': True, 'message': '...'} or a truthy value.
+
+from keyword_registry import keyword
+
+@keyword('sample_kw', description='Sample created async keyword')
+async def my_keyword(page, step):
+  selector = step.get('selector')
+  if selector:
+    try:
+      # async example: await the click so it actually executes
+      await page.locator(selector).click(force=True)
+    except Exception as e:
+      return {'success': False, 'message': f'click failed: {e}'}
+  return {'success': True, 'message': 'ok', step.get('store_as'):'var-value'}{% endraw %}</script>
+        <!-- ACE editor for body with line numbers; sync to hidden textarea on submit -->
+        <div id="body-editor" style="height:320px;border:1px solid #ddd;margin-top:8px"></div>
+        <textarea name="body" id="body-hidden" style="display:none"></textarea>
+
+        <div style="margin-top:12px">
+            <button class="button" type="submit">Create</button>
+            <a class="button ghost" href="/">Cancel</a>
+        </div>
+    </form>
+    <div id="kw-msg" style="margin-top:8px;color:#900"></div>
+    <script>
+        (function () {
+            const form = document.querySelector('form[action="/keywords/create"]');
+            const msg = document.getElementById('kw-msg');
+            if (!form) return;
+            // initialize ACE editor
+            const aceScript = document.createElement('script');
+            aceScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.11.2/ace.js';
+            aceScript.onload = () => {
+                const editor = ace.edit('body-editor');
+                editor.setTheme('ace/theme/twilight');
+                editor.session.setMode('ace/mode/python');
+                // use the sample template as the initial content
+                const sample = document.getElementById('body-sample');
+                editor.setValue(sample ? sample.textContent : '', -1);
+                form.addEventListener('submit', () => { document.getElementById('body-hidden').value = editor.getValue(); });
+            };
+            document.head.appendChild(aceScript);
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                msg.textContent = '';
+                // ensure editor content sync
+                const editorEl = document.getElementById('body-editor');
+                if (editorEl) {
+                    const hidden = document.getElementById('body-hidden');
+                    if (hidden) hidden.value = (window.ace && ace.edit) ? ace.edit('body-editor').getValue() : (document.getElementById('body-sample') ? document.getElementById('body-sample').textContent : '');
+                }
+                const formData = new FormData(form);
+                try {
+                    const res = await fetch(form.action, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    let j;
+                    const ctype = res.headers.get('content-type') || '';
+                    if (ctype.includes('application/json')) {
+                        j = await res.json();
+                        if (!j.ok) {
+                            msg.textContent = j.error || 'Failed';
+                            return;
+                        }
+                        if (j.redirect) window.location = j.redirect;
+                    } else {
+                        // fallback: server returned HTML (likely a redirect page). follow if redirected
+                        if (res.redirected && res.url) {
+                            window.location = res.url;
+                            return;
+                        }
+                        const txt = await res.text();
+                        msg.textContent = (txt && txt.length > 0) ? txt.substring(0, 1500) : 'Unexpected non-JSON response from server';
+                    }
+                } catch (err) {
+                    msg.textContent = err.message || String(err);
+                }
+            });
+        })();
+    </script>
+</div>
+{% endblock %}

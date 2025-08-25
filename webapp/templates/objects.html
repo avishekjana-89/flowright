@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Object Repository - Flowwright{% endblock %}
+
+{% block header %}Object Repository{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h3>Object Repository</h3>
+  <div id="folders-list">
+    {% if folders and folders|length > 0 %}
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:6px;border-bottom:1px solid #ddd">Name</th>
+            <th style="text-align:left;padding:6px;border-bottom:1px solid #ddd">id</th>
+            <th style="padding:6px;border-bottom:1px solid #ddd">On FS</th>
+            <th style="padding:6px;border-bottom:1px solid #ddd">In DB</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for f in folders %}
+          <tr>
+            <td style="padding:8px;border-bottom:1px solid #f3f3f3">{{ f.name }}</td>
+            <td style="padding:8px;border-bottom:1px solid #f3f3f3">{{ f.id or '' }}</td>
+            <td style="text-align:center;padding:8px;border-bottom:1px solid #f3f3f3">{{ '✅' if f.on_fs else '—' }}</td>
+            <td style="text-align:center;padding:8px;border-bottom:1px solid #f3f3f3">{{ '✅' if f.in_db else '—' }}</td>
+            <td style="padding:8px;border-bottom:1px solid #f3f3f3">
+              <a class="button" href="/objects/{{ f.name }}">View</a>
+              <button class="button" onclick="renameFolder('{{ f.name }}')" style="margin-left:6px">Rename</button>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="muted">No folders yet.</div>
+    {% endif %}
+  </div>
+
+  <h4 style="margin-top:12px">Create new folder</h4>
+  <form id="create-folder" method="post" action="/objects/create">
+    <input name="name" placeholder="Folder name" />
+    <button type="submit" class="button">Create</button>
+  </form>
+</div>
+
+<script>
+// keep non-AJAX submit behavior; UI shows table with DB/FS sync status
+document.getElementById('create-folder')?.addEventListener('submit', function(e){
+  // default form submit
+});
+
+function renameFolder(oldName) {
+  const newName = prompt('Rename folder "' + oldName + '" to:');
+  if (!newName) return;
+  fetch('/objects/rename', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ oldName: oldName, newName: newName })
+  }).then(async (r) => {
+    if (!r.ok) { alert('Rename failed: ' + r.status + '\n' + await r.text()); return; }
+    const j = await r.json(); if (j && j.ok) window.location.reload(); else alert('Rename failed: ' + JSON.stringify(j));
+  }).catch((e) => { alert('Rename error: ' + e); });
+}
+</script>
+{% endblock %}

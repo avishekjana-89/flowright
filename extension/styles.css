@@ -1,0 +1,166 @@
+/* make the popup responsive: don't force a fixed pixel width */
+body {
+    font-family: system-ui, Arial;
+    margin: 0;
+    padding: 12px;
+    background: #fff;
+    box-sizing: border-box;
+    width: 100%;
+    /* increase popup size slightly so table fits horizontally */
+    max-width: 980px;
+    /* allow larger hosts while still constrained */
+    min-width: 520px;
+    /* don't collapse too small */
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 100%;
+    box-sizing: border-box
+}
+
+h3 {
+    margin: 0 0 6px 0
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between
+}
+
+.status {
+    font-size: 12px;
+    color: #d93025
+}
+
+.controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center
+}
+
+.controls button {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background: #fafafa;
+    cursor: pointer;
+    flex: 0 1 auto
+}
+
+.controls button.primary {
+    background: #1a73e8;
+    color: #fff;
+    border-color: #1761c6
+}
+
+.count {
+    margin-left: auto;
+    font-size: 13px;
+    color: #333
+}
+
+/* table area should be allowed to stretch and scroll horizontally if needed */
+.table-wrap {
+    max-height: 500px;
+    overflow: auto;
+    border: 1px solid #f3f4f6;
+    padding: 6px;
+    background: #fff;
+    width: 100%;
+    max-width: 100%
+}
+
+/* when used inside pinned iframe, allow larger table area */
+/* make pinned host fill available height and allow table to reach bottom */
+#nocr-recorder-sidebar-host {
+    display: flex;
+    flex-direction: column;
+}
+
+#nocr-recorder-sidebar-host .container {
+    height: 100%;
+    box-sizing: border-box;
+}
+
+#nocr-recorder-sidebar-host .table-wrap,
+.container.pinned .table-wrap {
+    max-height: calc(100vh - 180px);
+    flex: 1 1 auto;
+    overflow: auto
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto
+}
+
+/* prefer horizontal layout in popup: prevent wrap and show ellipsis when necessary; allow horizontal scroll on container */
+td,
+th {
+    padding: 8px;
+    border-bottom: 1px solid #f7f7f7;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 420px
+}
+
+th {
+    background: #fbfbfb;
+    text-align: left
+}
+
+.modal {
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center
+}
+
+.modal-content {
+    background: #fff;
+    padding: 12px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 720px
+}
+
+.modal-content pre {
+    white-space: pre-wrap;
+    max-height: 60vh;
+    overflow: auto
+}
+
+.modal-content button {
+    float: right
+}
+
+/* small screens adjustments */
+@media (max-width:420px) {
+    .controls button {
+        padding: 6px 8px;
+        font-size: 13px
+    }
+
+    .count {
+        margin-left: 0;
+        width: 100%;
+        text-align: right
+    }
+
+    .controls {
+        gap: 6px
+    }
+}

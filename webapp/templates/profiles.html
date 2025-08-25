@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Profiles{% endblock %}
+{% block header %}Profiles{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h3>Profiles</h3>
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <p class="muted">Create and manage profiles (environment variables, credentials, etc.)</p>
+    <form method="post" action="/profiles/create" style="display:flex;gap:8px;align-items:center">
+      <input class="input" name="name" placeholder="Profile name (e.g. QA)" required />
+      <button class="button" type="submit">Add Profile</button>
+    </form>
+  </div>
+  <div style="height:12px"></div>
+  {% if profiles and profiles | length > 0 %}
+  <table class="table" style="width:100%">
+    <thead>
+      <tr>
+        <th style="width:40px;text-align:left">#</th>
+        <th style="text-align:left">Name</th>
+        <th style="width:160px;text-align:middle">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in profiles %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ p.name }}</td>
+        <td style="text-align:right">
+          <a class="button ghost small" href="/profiles/{{ p.id }}">Edit</a>
+          <form method="post" action="/profiles/{{ p.id }}/delete" style="display:inline"
+            onsubmit="return confirm('Delete profile and all keys?')">
+            <button class="button ghost small" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="muted">No profiles yet. Create one using the form above.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Custom Keywords{% endblock %}
+{% block header %}Custom Keywords{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3>Keywords</h3>
+        <a class="button" href="/keywords/new">Create New</a>
+    </div>
+    <table style="width:100%;margin-top:12px">
+        <tr>
+            <th style="text-align:left">Filename</th>
+            <th style="text-align:left">Actions</th>
+        </tr>
+        {% for f in files %}
+        <tr>
+            <td>{{ f }}</td>
+            <td>
+                <a class="button ghost" href="/keywords/edit/{{ f }}">Edit</a>
+                <a class="button ghost" href="/keywords/import/{{ f }}">Import</a>
+                <form method="post" action="/keywords/delete" style="display:inline">
+                    <input type="hidden" name="filename" value="{{ f }}" />
+                    <button class="button ghost" type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

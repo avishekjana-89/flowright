@@ -1,0 +1,24 @@
+# Ignore sensitive and generated artifacts requested by the user
+
+# Webapp runtime data and artifacts
+/webapp/data/
+/webapp/databases/
+/webapp/runs/
+/webapp/steps/
+/webapp/objects/
+/webapp/files/
+/webapp/__pycache__/
+/webapp/routers/__pycache__/
+
+# Project-level keywords folder (if present)
+/keywords/
+/__pycache__/
+
+# Environment files
+.env
+.env.*
+.DS_Store
+*.log
+
+# NOTE: .gitignore prevents new files from being tracked; if files in
+# these paths are already committed, see commands below to untrack them.

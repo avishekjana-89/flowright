@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+
+{% block title %}Test Cases{% endblock %}
+{% block header %}Test Cases{% endblock %}
+
+{% block content %}
+<style>
+  /* Minimal stable styles for testcases list (responsive & compact) */
+  .sidebar {
+    width: 280px; /* slightly larger */
+    min-width: 180px;
+  }
+
+  /* folders: simple vertical list (one per row) */
+  .folders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* folder tile: full-width row with name on the left and actions on the right */
+  .folders-list > a,
+  .folders-list > div {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* left align content, actions will be pushed via margin-left */
+    gap: 12px;
+    padding: 10px 8px 10px 0; /* larger vertical padding for bigger rows */
+    border-radius: 6px;
+    background: transparent;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .folders-list > a,
+  .folders-list > div a {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+    color: inherit;
+    font-size: 0.95rem;
+    line-height: 1.2;
+  }
+
+  .folder-actions { flex: 0 0 auto; display:flex; gap:6px; align-items:center; margin-left:auto }
+
+  /* make folder action icons smaller and tighter */
+  .folder-actions .button.small {
+    padding: 6px 8px;
+    font-size: 0.9rem;
+    line-height:1;
+    min-width:32px;
+    height:32px;
+  }
+
+  .groups {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cases-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .case-card {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .case-name {
+    font-weight: 400;
+    font-size: 0.95rem;
+    word-break: break-word;
+  }
+
+  .tags {
+    display: flex;
+    gap: 4px; /* tighter spacing */
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-size: 0.78rem;
+    padding: 3px 8px;
+    border-radius: 12px;
+    background: var(--muted-1);
+    color: inherit;
+    display: inline-block;
+  }
+
+  /* responsive adjustments */
+  @media (max-width:900px) {
+    .folders-list {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr))
+    }
+  }
+
+  @media (max-width:700px) {
+    .layout {
+      flex-direction: column
+    }
+
+    .sidebar {
+      width: 100%;
+      min-width: auto
+    }
+
+    .folders-list {
+      display: flex;
+      flex-direction: column
+    }
+
+    .folders-list>a,
+    .folders-list>div {
+      padding: 8px
+    }
+  }
+</style>
+
+<div class="card" style="padding:8px">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h3 style="margin:0">All Test Cases</h3>
+    <div style="display:flex;gap:8px">
+      <a class="button" href="/testcases/new">New Test Case</a>
+      <button class="button" type="button" onclick="createFolderPrompt()">Create Folder</button>
+    </div>
+  </div>
+
+  <div style="height:8px"></div>
+  <div class="layout" style="display:flex;gap:12px;align-items:flex-start">
+    <aside class="sidebar"> 
+      <div style="padding:8px 6px">
+        <strong>Folders</strong>
+        <div class="folders-list" style="margin-top:1px">
+          <a class="folder-item" href="/testcases" {% if current_folder_id==''
+            %}style="background:var(--muted-1);display:block;padding:6px;border-radius:4px" aria-current="true" {% endif
+            %}>All</a>
+          <a class="folder-item" href="/testcases/folder/root" {% if current_folder_id=='root'
+            %}style="background:var(--muted-1);display:block;padding:6px;border-radius:4px" aria-current="true" {% endif
+            %}>Root</a>
+          {% for f in folders %}
+          <div class="folder-item">
+            <a href="/testcases/folder/{{ f.id }}">{{ f.name }}</a>
+            <div class="folder-actions">
+              <button class="button small" onclick="renameFolder('{{ f.id }}','{{ f.name|e }}')">✎</button>
+              <button class="button small" onclick="deleteFolder('{{ f.id }}')">🗑</button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </aside>
+
+    <main style="flex:1">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="flex:1;max-width:640px">
+          <input id="case-search" aria-label="Search test cases" placeholder="Search test cases" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--muted-2)" />
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="color:var(--muted-2)">Filter:</div>
+          <select id="tag-filter">
+            <option value="">All</option>
+            {% if all_tags and all_tags|length > 0 %}
+              {% for t in all_tags %}
+                <option value="{{ t }}">{{ t }}</option>
+              {% endfor %}
+            {% else %}
+              {# fallback: compute tag list in template if server didn't pass any #}
+              {% set tag_list = [] %}
+              {% for g in groups %}
+                {% for tc in g.cases %}
+                  {% for t in tc.tags %}
+                    {% if t and t.strip() and t.strip() not in tag_list %}
+                      {% set tag_list = tag_list + [t.strip()] %}
+                    {% endif %}
+                  {% endfor %}
+                {% endfor %}
+              {% endfor %}
+              {% for t in tag_list|sort %}
+                <option value="{{ t }}">{{ t }}</option>
+              {% endfor %}
+            {% endif %}
+          </select>
+        </div>
+      </div>
+
+      <div class="card" style="padding:6px 12px">
+        <div style="display:grid;grid-template-columns:2.8fr 100px 80px;gap:12px;align-items:center;font-weight:600;color:var(--muted-2)">
+          <div>Test Case Name</div>
+          <div>Tags</div>
+          <div>Actions</div>
+        </div>
+      </div>
+
+      <div id="cases-container" style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+        {% for g in groups %}
+          {% for tc in g.cases %}
+            <div class="card" style="padding:8px">
+              <div style="display:grid;grid-template-columns:2.8fr 100px 80px;gap:12px;align-items:center">
+                <div class="case-name"><a href="/testcases/{{ tc.id }}" style="color:inherit;text-decoration:none">{{ tc.name }}</a></div>
+                <div class="tags">{% for t in tc.tags %}{% if t %}<span class="tag">{{ t }}</span>{% endif %}{% endfor %}</div>
+                <div style="display:flex;justify-content:flex-end">
+                  <form method="post" action="/testcases/{{ tc.id }}/delete" onsubmit="return confirm('Delete this testcase? This will remove the file and DB row.')">
+                    <button class="button ghost small" type="submit" aria-label="Delete testcase">🗑</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% endfor %}
+      </div>
+
+      <div id="no-results" style="display:none;margin-top:12px;color:var(--muted-2);text-align:center">No test cases match your search.</div>
+    </main>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function renameFolder(id, curName) {
+    const name = prompt('Rename folder', curName || ''); if (!name) return;
+    const fd = new FormData(); fd.append('name', name);
+    fetch(`/testcases/folders/${id}/update`, { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } })
+      .then(r => r.json()).then(j => { if (j && j.ok) location.reload(); else alert('Rename failed: ' + (j && j.error || 'unknown')) }).catch(e => alert('Error: ' + e));
+  }
+  function deleteFolder(id) {
+    if (!confirm('Delete this folder? Testcases inside will be moved to Root.')) return;
+    fetch(`/testcases/folders/${id}/delete`, { method: 'POST', headers: { 'Accept': 'application/json' } })
+      .then(r => r.json()).then(j => {
+        if (j && j.ok) {
+          const current = window.location.pathname || '';
+          if (current.startsWith(`/testcases/folder/${id}`)) {
+            window.location.href = '/testcases';
+          } else {
+            location.reload();
+          }
+        } else {
+          alert('Delete failed: ' + (j && j.error || 'unknown'))
+        }
+      }).catch(e => alert('Error: ' + e));
+  }
+  function createFolderPrompt() {
+    const name = prompt('Create folder', 'New Folder'); if (!name) return;
+    const fd = new FormData(); fd.append('name', name);
+    fetch('/testcases/folders/create', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } })
+      .then(r => r.json()).then(j => { if (j && j.ok) location.reload(); else alert('Create failed: ' + (j && j.error || 'unknown')) }).catch(e => alert('Error: ' + e));
+  }
+
+  // Client-side search/filter for testcases
+  (function() {
+  const input = document.getElementById('case-search');
+  const container = document.getElementById('cases-container');
+  const tagFilter = document.getElementById('tag-filter');
+  const noResults = document.getElementById('no-results');
+  if (!input || !container) return;
+
+    function normalize(s) { return (s||'').toString().toLowerCase().trim(); }
+
+    function filter() {
+      const q = normalize(input.value);
+      const selectedTag = normalize(tagFilter && tagFilter.value);
+      let anyVisible = false;
+      const rows = Array.from(container.children).filter(n => n.nodeType===1);
+      rows.forEach(row => {
+        // gather searchable text: case name and tags
+        const nameEl = row.querySelector('.case-name');
+        const tagsEl = row.querySelector('.tags');
+        const name = normalize(nameEl && nameEl.textContent);
+        const tags = normalize(tagsEl && tagsEl.textContent);
+
+        // match text query
+        const textMatch = q === '' || name.indexOf(q) !== -1 || tags.indexOf(q) !== -1;
+
+        // match tag filter (if any) by checking individual .tag spans
+        let tagMatch = true;
+        if (selectedTag) {
+          const tagEls = row.querySelectorAll('.tag');
+          tagMatch = Array.from(tagEls).some(tn => normalize(tn.textContent) === selectedTag);
+        }
+
+        const match = textMatch && tagMatch;
+        row.style.display = match ? '' : 'none';
+        if (match) anyVisible = true;
+      });
+      noResults.style.display = anyVisible ? 'none' : '';
+    }
+
+  input.addEventListener('input', filter);
+  if (tagFilter) tagFilter.addEventListener('change', filter);
+    // support Enter to focus first match
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        const first = Array.from(container.children).find(r => r.style.display !== 'none');
+        if (first) {
+          const link = first.querySelector('.case-name a');
+          if (link) link.focus();
+        }
+      }
+    });
+  })();
+</script>
+{% endblock %}

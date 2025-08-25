@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile: {{ profile.name }}{% endblock %}
+{% block header %}Profile: {{ profile.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>Profile: {{ profile.name }}</h3>
+    <form method="post" action="/profiles/{{ profile.id }}/save" style="display:flex;gap:8px;align-items:center">
+        <div style="flex:1">
+            <label><strong>Name</strong></label>
+            <input class="input" name="name" value="{{ profile.name }}" style="width:80%" />
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+            <button class="button" type="submit">Save</button>
+        </div>
+    </form>
+
+    <h4 style="margin-top:18px">Key / Value pairs</h4>
+    <table class="table" style="width:100%">
+        <thead>
+            <tr>
+                <th style="width:40%;text-align:left">Key</th>
+                <th style="text-align:left">Value</th>
+                <th style="width:120px;text-align:left">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for kv in kvs %}
+            <tr>
+                <td>{{ kv.key }}</td>
+                <td>{{ kv.value }}</td>
+                <td>
+                    <form method="post" action="/profiles/{{ profile.id }}/delete-kv" style="display:inline">
+                        <input type="hidden" name="kv_id" value="{{ kv.id }}" />
+                        <button class="button ghost small" type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h5 style="margin-top:12px">Add key/value</h5>
+    <form method="post" action="/profiles/{{ profile.id }}/add-kv" style="display:flex;gap:8px;align-items:center">
+        <input class="input" name="key" placeholder="key" required style="width:220px" />
+        <input class="input" name="value" placeholder="value" style="flex:1" />
+        <button class="button" type="submit">Add</button>
+    </form>
+</div>
+{% endblock %}

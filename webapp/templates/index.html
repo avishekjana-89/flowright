@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Test Cases{% endblock %}
+
+{% block header %}Test Cases{% endblock %}
+
+{% block content %}
+    <div class="card">
+    <form action="/upload" method="post" enctype="multipart/form-data">
+      <input class="input" type="file" name="file" accept=".json" />
+      <button class="button">Upload</button>
+    </form>
+  </div>
+
+  <div style="height:12px"></div>
+
+  <div class="card">
+    <input id="search" placeholder="Search by name or tag" style="width:50%" />
+    <ul id="steps-list" style="margin-top:12px">
+      {% for f in files %}
+      <li data-name="{{ f.name }}" data-tags="{{ f.meta.tags | join(',') }}">
+        <strong>{{ f.name }}</strong>
+        <div class="muted">{{ f.meta.description }}</div>
+        <div style="margin-top:6px">
+          <a href="/edit/{{ f.name }}">Edit</a>
+          |
+          <form style="display:inline" method="post" action="/run"><input type="hidden" name="name" value="{{ f.name }}"><button>Run</button></form>
+          |
+          <a href="/download/{{ f.name }}">Download</a>
+        </div>
+      </li>
+      {% else %}
+      <li>No files</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <script>
+    const search = document.getElementById('search');
+    const list = document.getElementById('steps-list');
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase().trim();
+      for (const li of list.children) {
+        const name = (li.dataset.name||'').toLowerCase();
+        const tags = (li.dataset.tags || '').toLowerCase();
+        if (!q || name.includes(q) || tags.includes(q)) li.style.display = '';
+        else li.style.display = 'none';
+      }
+    });
+  </script>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ name }}{% endblock %}
+
+{% block header %}Edit: {{ name }}{% endblock %}
+
+{% block content %}
+  <a href="/">Back</a>
+  <div style="height:12px"></div>
+  <div class="card">
+    <h3>Metadata</h3>
+    <form method="post" action="/meta/save">
+      <input type="hidden" name="name" value="{{ name }}">
+      <label>Tags (comma separated)</label><br/>
+      <input name="tags" value="{{ meta.tags | join(',') }}" style="width:60%"><br/>
+      <label>Description</label><br/>
+      <input name="description" value="{{ meta.description }}" style="width:80%"><br/>
+      <button>Save Metadata</button>
+    </form>
+  </div>
+
+  <div style="height:12px"></div>
+
+  <div class="card">
+    <form method="post" action="/save">
+      <input type="hidden" name="name" value="{{ name }}">
+      <textarea name="content" rows="20" style="width:100%">{{ steps | tojson(indent=2) }}</textarea>
+      <br/>
+      <button>Save</button>
+    </form>
+  </div>
+
+  <div style="height:12px"></div>
+
+  <div class="card">
+  <!-- Quick Add removed -->
+  </div>
+
+  <div style="height:12px"></div>
+
+  <div class="card">
+    <h3>Steps</h3>
+    <ol>
+    {% for s in steps %}
+      <li>
+        {{ s.type or s.action }} - {{ s.selector }} - {{ s.value }}
+        <form style="display:inline" method="post" action="/step/move"><input type="hidden" name="name" value="{{ name }}"><input type="hidden" name="index" value="{{ loop.index0 }}"><input type="hidden" name="dir" value="up"><button>Up</button></form>
+        <form style="display:inline" method="post" action="/step/move"><input type="hidden" name="name" value="{{ name }}"><input type="hidden" name="index" value="{{ loop.index0 }}"><input type="hidden" name="dir" value="down"><button>Down</button></form>
+        <form style="display:inline" method="post" action="/step/delete"><input type="hidden" name="name" value="{{ name }}"><input type="hidden" name="index" value="{{ loop.index0 }}"><button>Delete</button></form>
+      </li>
+    {% endfor %}
+    </ol>
+  </div>
+{% endblock %}

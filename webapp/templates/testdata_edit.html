@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Test Data{% endblock %}
+
+{% block header %}Test Data Editor{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>{% if is_new %}Create Test Data{% else %}Edit: {{ name }}{% endif %}</h3>
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="/testdata/save">
+        <div class="field">
+            <label>Content</label>
+            <textarea class="input" name="content" rows="30" style="font-family:monospace; min-height:480px; width:100%">{{ content }}</textarea>
+        </div>
+        <div style="margin-top:1em" class="field">
+            <label>Filename</label>
+            <input class="input" type="text" name="name" value="{{ name }}" placeholder="mydata.json or mydata.csv" />
+        </div>
+        <div class="field">
+            <label>File Type</label>
+            <select name="filetype" {% if not is_new %}disabled{% endif %}>
+                <option value="json" {% if filetype=='json' %}selected{% endif %}>JSON</option>
+                <option value="csv" {% if filetype=='csv' %}selected{% endif %}>CSV</option>
+            </select>
+        </div>
+        <div class="actions">
+            <button class="button" type="submit">Save</button>
+            <a class="button" href="/testdata">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

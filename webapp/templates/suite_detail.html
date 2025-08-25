@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block title %}Suite: {{ suite.name }}{% endblock %}
+{% block header %}Suite: {{ suite.name }}{% endblock %}
+
+{% block content %}
+<style>
+  /* Single-column layout so metadata appears on top of Test Cases */
+  .suite-page-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 8px
+  }
+
+  .meta-card {
+    padding: 8px
+  }
+
+  .meta-card .label {
+    color: var(--muted-2);
+    font-size: 0.95rem
+  }
+
+  .meta-actions {
+    display: flex;
+    justify-content: flex-end
+  }
+
+  .tc-card {
+    padding: 6px
+  }
+
+  .tc-list td {
+    vertical-align: middle;
+    padding-top: 4px;
+    padding-bottom: 4px
+  }
+
+  .tc-list .actions {
+    white-space: nowrap;
+    text-align: right
+  }
+</style>
+
+<div class="suite-page-grid">
+  <div class="card meta-card">
+    <div style="display:flex;align-items:start;gap:12px">
+      <div style="flex:1">
+        <div class="label"><strong>Name</strong></div>
+        <h3 style="margin:6px 0 0">{{ suite.name }}</h3>
+        <div class="label" style="margin-top:12px"><strong>Description</strong></div>
+        <p class="muted" style="margin-top:6px">{{ suite.description }}</p>
+      </div>
+      <div class="meta-actions">
+        <button id="open-edit-meta-btn" class="button" type="button"
+          onclick="document.getElementById('edit-meta').style.display='block'; this.style.display='none'">Edit</button>
+      </div>
+    </div>
+
+    <div id="edit-meta" style="display:none;margin-top:12px">
+      <form method="post" action="/suites/{{ suite.id }}/update-meta">
+        <div style="display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:start">
+          <div><label><strong>Name:</strong></label></div>
+          <div><input class="input" name="name" value="{{ suite.name }}" required style="width:100%" /></div>
+          <div style="margin-top:8px"><label><strong>Description:</strong></label></div>
+          <div style="margin-top:8px"><textarea class="input" name="description" rows="3"
+              style="width:100%">{{ suite.description }}</textarea></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;justify-content:flex-end">
+          <button class="button" type="submit">Save Metadata</button>
+          <button class="button ghost" type="button"
+            onclick="document.getElementById('edit-meta').style.display='none';document.getElementById('open-edit-meta-btn').style.display=''">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <div class="card tc-card">
+      <h4 style="margin-top:0">Test Cases</h4>
+      {% if items %}
+      <table class="table tc-list" style="width:100%">
+        <thead>
+          <tr>
+            <th style="width:38px;text-align:left">#</th>
+            <th style="width:48px;text-align:left">Run</th>
+            <th style="text-align:left">Name</th>
+            <th style="width:180px;text-align:middle">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td><input type="checkbox" class="run-flag" data-tc="{{ it.tc_id }}" checked></td>
+            <td style="padding-left:8px">{{ it.tc_name }}</td>
+            <td class="actions">
+              <form style="display:inline" method="post" action="/suites/{{ suite.id }}/move-tc">
+                <input type="hidden" name="tc_id" value="{{ it.tc_id }}">
+                <input type="hidden" name="dir" value="up">
+                <button class="button ghost small" type="submit" title="Move up">⬆️</button>
+              </form>
+              <form style="display:inline" method="post" action="/suites/{{ suite.id }}/move-tc">
+                <input type="hidden" name="tc_id" value="{{ it.tc_id }}">
+                <input type="hidden" name="dir" value="down">
+                <button class="button ghost small" type="submit" title="Move down">⬇️</button>
+              </form>
+              <form style="display:inline" method="post" action="/suites/{{ suite.id }}/remove-tc"
+                onsubmit="return confirm('Remove this testcase from the suite?')">
+                <input type="hidden" name="tc_id" value="{{ it.tc_id }}">
+                <button class="button ghost small" type="submit" title="Remove"><svg
+                    style="height:14px;width:14px;vertical-align:middle" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    <path d="M10 11v6"></path>
+                    <path d="M14 11v6"></path>
+                    <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                  </svg></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="card">No test cases in this suite yet.</div>
+      {% endif %}
+
+      <h4 style="margin-top:18px">Add Test Cases</h4>
+      <form method="post" action="/suites/{{ suite.id }}/add-tcs">
+        <label>Select additional test cases (select multiple with Ctrl/Cmd)<br>
+          <select name="tc_ids" multiple size="8" style="width:100%">
+            {% for tc in available_tcs %}
+            <option value="{{ tc.id }}">{{ tc.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <p style="margin-top:12px"><button class="button" type="submit">Add to Suite</button></p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="card tc-card">
+    <h4 style="margin-top:0">Run</h4>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+      <label for="suiteConcurrency"
+        style="margin-left:6px;margin-right:4px;font-size:0.9em;color:var(--muted-2)">Concurrency</label>
+      <select id="suiteConcurrency" style="width:80px" title="Number of concurrent runs to start">
+        <option value="1" selected>1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+      </select>
+      <label for="suiteBrowser"
+        style="margin-left:10px;margin-right:4px;font-size:0.9em;color:var(--muted-2)">Browser</label>
+      <select id="suiteBrowser" style="width:120px" title="Browser to use for execution">
+        <option value="chromium">chromium</option>
+        <option value="chrome" selected>chrome</option>
+        <option value="firefox">firefox</option>
+        <option value="webkit">webkit</option>
+      </select>
+      <button class="button" type="button" onclick="suiteRun()">Run Selected</button>
+      <span id="suiteRunStatus" style="margin-left:8px;color:var(--muted-2)"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // run-flag is UI-only; state is not persisted server-side.
+</script>
+<script>
+  // Suite-level Run UI: collect checked testcases and invoke /suites/{{ suite.id }}/run
+  async function suiteRun() {
+    const statusEl = document.getElementById('suiteRunStatus');
+    statusEl.innerText = '';
+    const checkboxes = document.querySelectorAll('.run-flag');
+    const ids = [];
+    for (const cb of checkboxes) { if (cb.checked) ids.push(cb.dataset.tc); }
+    if (ids.length === 0) { statusEl.innerText = 'No testcases selected'; return; }
+    const form = new FormData();
+    for (const id of ids) form.append('tc_ids', id);
+    // include concurrency and browser if present
+    const concEl = document.getElementById('suiteConcurrency');
+    if (concEl) form.append('concurrency', concEl.value || '1');
+    const browserEl = document.getElementById('suiteBrowser');
+    if (browserEl) form.append('browser', browserEl.value || 'chrome');
+    const runBtn = document.querySelector('button[onclick="suiteRun()"]');
+      try {
+        if (runBtn) runBtn.disabled = true;
+        const res = await fetch('/suites/{{ suite.id }}/run', { method: 'POST', body: form, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+        if (res.ok) { const j = await res.json(); if (j && j.ok) { statusEl.innerText = 'Runs started: ' + (j.results ? j.results.length : 0); showToast('Suite runs started and are running in background. Reports will appear under Reporting soon.'); } else { statusEl.innerText = 'Run response: ' + JSON.stringify(j); showToast('Suite runs started and are running in background. Reports will appear under Reporting soon.'); } }
+        else { const txt = await res.text(); statusEl.innerText = 'Failed: ' + res.status + '\n' + txt.substring(0, 400); showToast('Failed to start suite runs'); }
+      } catch (e) { statusEl.innerText = 'Error starting suite runs: ' + e; showToast('Failed to start suite runs'); }
+      finally { if (runBtn) runBtn.disabled = false; }
+  }
+</script>
+
+  <script>
+    // toast helper reused on this page
+    function showToast(msg, timeout = 4000) {
+      try {
+        const t = document.createElement('div');
+        t.id = 'suite-run-toast';
+        t.style.position = 'fixed';
+        t.style.right = '24px';
+        t.style.bottom = '24px';
+        t.style.background = 'linear-gradient(90deg,var(--accent),#06b6d4)';
+        t.style.color = 'white';
+        t.style.padding = '10px 14px';
+        t.style.borderRadius = '8px';
+        t.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
+        t.innerText = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), timeout);
+      } catch (e) { console.error('toast error', e); }
+    }
+  </script>
+{% endblock %}

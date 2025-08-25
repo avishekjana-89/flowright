@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Settings{% endblock %}
+{% block header %}Settings{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <h3>Runner Settings</h3>
+    <form id="settingsForm" method="post" action="/settings/save">
+      <label style="display:block;margin-top:8px">Default timeout (seconds)
+        <input class="input" name="default_timeout_sec" value="{{ settings.default_timeout_sec or '' }}" placeholder="5" />
+      </label>
+      <label style="display:block;margin-top:8px">Navigation timeout (seconds)
+        <input class="input" name="navigation_timeout_sec" value="{{ settings.navigation_timeout_sec or '' }}" placeholder="30" />
+      </label>
+      <label style="display:block;margin-top:8px">Assertion timeout (seconds)
+        <input class="input" name="assertion_timeout_sec" value="{{ settings.assertion_timeout_sec or '' }}" placeholder="5" />
+      </label>
+      <label style="display:block;margin-top:8px">Screenshot policy
+        <select name="screenshot_policy" class="input">
+          <option value="every" {% if settings.screenshot_policy=='every' %}selected{% endif %}>Every step</option>
+          <option value="failure" {% if settings.screenshot_policy=='failure' %}selected{% endif %}>Only on failure</option>
+        </select>
+      </label>
+      <label style="display:block;margin-top:8px">Default profile
+        <select name="selected_profile" class="input">
+          <option value="">(none)</option>
+          {% for p in profiles %}
+            <option value="{{ p.id }}" {% if settings.selected_profile == p.id %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div style="margin-top:12px">
+        <button class="button" type="submit">Save Settings</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

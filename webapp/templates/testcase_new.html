@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}New Test Case{% endblock %}
+{% block header %}Create Test Case{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <form action="/testcases/create" method="post" enctype="multipart/form-data">
+      <div>
+        <label>Name</label><br>
+        <input class="input" name="name" required style="width:100%" />
+      </div>
+      <div style="margin-top:8px">
+        <label>Description</label><br>
+        <textarea class="input" name="description" rows="4" style="width:100%"></textarea>
+      </div>
+      <div style="margin-top:8px">
+        <label>Tags (comma separated)</label><br>
+        <input class="input" name="tags" style="width:100%" />
+      </div>
+      <div style="margin-top:8px">
+        <label>Folder (optional)</label><br>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="folder-select" class="input" style="min-width:220px">
+            <option value="">-- choose existing --</option>
+            {% for f in folders %}
+              <option value="{{ f.id }}">{{ f.name }}</option>
+            {% endfor %}
+          </select>
+          <input id="folder-input" class="input" placeholder="Or type a folder name" style="flex:1" />
+        </div>
+  <div class="muted" style="font-size:0.85rem;margin-top:4px">Select an existing folder or type a new one. Typed value takes precedence.</div>
+      </div>
+      <div style="margin-top:8px">
+        <label>Object Repository Folder <span style="color:#c00">(required)</span></label><br>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="objfolder-select" class="input" style="min-width:220px">
+            <option value="">-- choose existing --</option>
+            {% for f in object_folders %}
+              <option value="{{ f.id }}">{{ f.name }}</option>
+            {% endfor %}
+          </select>
+          <input id="objfolder-input" class="input" placeholder="Or type a new object folder name" style="flex:1" />
+        </div>
+  <div class="muted" style="font-size:0.85rem;margin-top:4px">Choose an existing object folder or type a new one (typed name takes precedence).</div>
+      </div>
+      <div style="margin-top:8px">
+        <label>Recorder JSON</label><br>
+        <input class="input" type="file" name="file" accept=".json" required />
+      </div>
+      <div style="margin-top:12px">
+        <button class="button">Create</button>
+      </div>
+    </form>
+  </div>
+  <script>
+    (function(){
+      var form = document.querySelector('form[action="/testcases/create"]');
+      if(!form) return;
+  form.addEventListener('submit', function(e){
+        var typed = document.getElementById('folder-input').value && document.getElementById('folder-input').value.trim();
+        var selectedId = document.getElementById('folder-select').value && document.getElementById('folder-select').value.trim();
+        var selectedLabel = document.getElementById('folder-select').selectedOptions && document.getElementById('folder-select').selectedOptions[0] ? document.getElementById('folder-select').selectedOptions[0].text : '';
+        // determine values to send: typed name takes precedence; else send selected id
+        var finalName = typed || '';
+        var finalId = '';
+        if(!finalName && selectedId){ finalId = selectedId; finalName = selectedLabel; }
+        // ensure hidden fields exist
+        var hidId = form.querySelector('input[name="folder_id"]');
+        if(!hidId){ hidId = document.createElement('input'); hidId.type='hidden'; hidId.name='folder_id'; form.appendChild(hidId); }
+        var hidName = form.querySelector('input[name="folder_name"]');
+        if(!hidName){ hidName = document.createElement('input'); hidName.type='hidden'; hidName.name='folder_name'; form.appendChild(hidName); }
+        hidId.value = finalId;
+        hidName.value = finalName;
+        // object folder handling (mandatory)
+        var typedObj = document.getElementById('objfolder-input').value && document.getElementById('objfolder-input').value.trim();
+        var selectedObjId = document.getElementById('objfolder-select').value && document.getElementById('objfolder-select').value.trim();
+        var selectedObjLabel = document.getElementById('objfolder-select').selectedOptions && document.getElementById('objfolder-select').selectedOptions[0] ? document.getElementById('objfolder-select').selectedOptions[0].text : '';
+        var finalObjName = typedObj || '';
+        var finalObjId = '';
+        if(!finalObjName && selectedObjId){ finalObjId = selectedObjId; finalObjName = selectedObjLabel; }
+        // ensure hidden fields exist
+        var ohidId = form.querySelector('input[name="object_folder_id"]');
+        if(!ohidId){ ohidId = document.createElement('input'); ohidId.type='hidden'; ohidId.name='object_folder_id'; form.appendChild(ohidId); }
+        var ohidName = form.querySelector('input[name="object_folder_name"]');
+        if(!ohidName){ ohidName = document.createElement('input'); ohidName.type='hidden'; ohidName.name='object_folder_name'; form.appendChild(ohidName); }
+        ohidId.value = finalObjId;
+        ohidName.value = finalObjName;
+        // validation: ensure finalObjName exists
+        if(!finalObjName){
+          e.preventDefault();
+          alert('Please choose or enter an Object Repository folder (required).');
+          return false;
+        }
+      });
+    })();
+  </script>
+{% endblock %}

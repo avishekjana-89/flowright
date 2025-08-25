@@ -1,0 +1,33 @@
+{
+    "ui": [
+        "goto",
+        "click",
+        "doubleClick",
+        "hover",
+        "fill",
+        "press",
+        "selectDate",
+        "selectDropdownByValue",
+        "upload",
+        "scroll",
+        "check",
+        "uncheck",
+        "dragAndDrop",
+        "switchToWindow",
+        "getText",
+        "getAttribute",
+        "verifyElementText",
+        "verifyElementAttribute",
+        "verifyElementValue",
+        "verifyElementChecked",
+        "verifyElementVisible",
+        "verifyElementHidden",
+        "verifyElementDisabled",
+        "verifyElementEnabled",
+        "verifyElementContainsText",
+        "verifyElementNotContainsText",
+        "verifyElementCount",
+        "verifyPageTitle"
+    ],
+    "api": []
+}

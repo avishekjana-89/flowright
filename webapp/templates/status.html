@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Status {{ name }}{% endblock %}
+
+{% block header %}Status: {{ name }}{% endblock %}
+
+{% block content %}
+<a href="/">Back</a>
+<div style="height:12px"></div>
+<div class="card">
+  {% if running %}
+  <p>Running (pid={{ pid }})</p>
+  <p>Log file: {{ logfile }}</p>
+  {% if run_dir %}
+  <p>Run dir: <a href="/runs/{{ run_dir }}/report.html">{{ run_dir }}</a></p>
+  {% endif %}
+  {% else %}
+  <p>Not running</p>
+  {% if exit_code is defined %}
+  <h3>Exit: {{ exit_code }}</h3>
+  <pre>{{ log_tail }}</pre>
+  {% if artifacts %}
+  <h4>Artifacts</h4>
+  <ul>
+    {% for a in artifacts %}
+    {% if a.endswith('.html') %}
+    <li><a href="/runs/{{ run_dir }}/{{ a }}">{{ a }}</a></li>
+    {% elif a.startswith('job_') %}
+    {# job directories: link to their report.html #}
+    <li><a href="/runs/{{ run_dir }}/{{ a }}/report.html">{{ a }}</a></li>
+    {% else %}
+    <li><a href="/runs/{{ run_dir }}/{{ a }}">{{ a }}</a></li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

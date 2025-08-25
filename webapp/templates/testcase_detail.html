@@ -1,0 +1,560 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ tc.name }}{% endblock %}
+{% block header %}{{ tc.name }}{% endblock %}
+
+{% block content %}
+<div style="display:flex;gap:6px">
+  <div style="flex:1">
+    <div class="card" style="padding:8px">
+      <h3 style="margin:0">Details</h3>
+      <form id="meta-form" method="post" action="/testcases/{{ tc.id }}/update-meta">
+        <div><label><strong>Name:</strong></label><br><input class="input" name="name" value="{{ tc.name }}" required
+            style="width:100%" /></div>
+        <div style="margin-top:8px"><label><strong>Description:</strong></label><br><textarea class="input"
+            name="description" rows="4" style="width:100%">{{ tc.description }}</textarea></div>
+        <div style="margin-top:8px"><label>Tags (comma separated)</label><br><input class="input" name="tags"
+            value="{{ tc.tags | join(',') }}" style="width:100%" /></div>
+        <div style="margin-top:8px"><label>Bind dataset (optional)</label><br>
+          <select class="input" name="dataset" id="meta-dataset-select" style="width:100%">
+            <option value="">(none)</option>
+            {% for f in datasets %}
+            <option value="{{ f }}" {% if tc.data_filename==f %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="margin-top:8px"><label><strong>Folder (optional)</strong></label><br>
+          <select class="input" name="folder_id" id="meta-folder-select" style="width:100%">
+            <option value="">(Root)</option>
+            {% for f in folders %}
+            <option value="{{ f.id }}" {% if f.id==current_folder_id %}selected{% endif %}>{{ f.name }}</option>
+            {% endfor %}
+          </select>
+          <div style="margin-top:6px"><label>Or enter folder name to create / match</label><br>
+            <input class="input" name="folder_name" id="meta-folder-name" value="" placeholder="Type folder name to create or match" style="width:100%" />
+          </div>
+        </div>
+        <div style="margin-top:8px"><label><strong>Object Repository (read-only)</strong></label><br>
+          <input class="input" type="text" value="{{ object_folder.name if object_folder else (tc.object_folder_id or '') }}" disabled style="width:100%" />
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <button class="button" type="submit">Save Metadata</button>
+          <a class="button ghost" href="/download/{{ tc.filename }}">Download JSON</a>
+        </div>
+      </form>
+    </div>
+
+    <div style="height:6px"></div>
+
+    <div class="card" style="padding:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h3 style="margin:0;font-size:1rem">Steps</h3>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div id="saveError" style="color:#f88;margin-top:6px;display:none"></div>
+          <form id="saveStepsForm" method="post" action="/testcases/{{ tc.id }}/save-steps" style="margin-left:16px">
+            <input type="hidden" name="content" id="contentField" />
+            <button class="button" type="button" onclick="prepareAndSubmit()">Save Steps</button>
+          </form>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table id="stepsTbl" style="width:100%;border-collapse:collapse">
+          <!-- default percentage widths; users can resize to px which will be persisted -->
+          <colgroup id="stepsCols">
+            <col style="width:5%" />
+            <col style="width:7%" /> <!-- Action -->
+            <col style="width:12%" /> <!-- Type -->
+            <col style="width:41%" /> <!-- Selector -->
+            <col style="width:23%" /> <!-- Value -->
+            <col style="width:12%" /> <!-- Store As -->
+            <col style="width:12%" /> <!-- Actions -->
+          </colgroup>
+          <thead>
+            <tr style="text-align:left;color:var(--muted-2)">
+              <th>#</th>
+              <th>Type</th>
+              <th>Action</th>
+              <th>SelectorRef</th>
+              <th>Value</th>
+              <th>Store As</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+        <div class="add-step-row" style="width:100%">
+          <select id="new-action" class="a-action input">
+            <option value="ui">ui</option>
+          </select>
+          <select id="new-type" class="a-type input">
+            <option value="click">click</option>
+          </select>
+          <input id="new-selector" class="a-selector input" placeholder="selector" />
+          <input id="new-value" class="a-value input" placeholder="value" />
+            <input id="new-storeas" class="a-storeas input" placeholder="store_as" />
+          <button id="addStepBtn" class="button a-add">Add Step</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:6px"></div>
+
+    <div class="card" style="padding:8px">
+      <h3 style="margin:0;font-size:1rem">Run</h3>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+        <label for="concurrencySelect"
+          style="margin-left:6px;margin-right:4px;font-size:0.9em;color:var(--muted-2)">Concurrency</label>
+        <select id="concurrencySelect" style="width:80px" title="Number of concurrent runs to start">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+        </select>
+        <label for="browserSelect"
+          style="margin-left:10px;margin-right:4px;font-size:0.9em;color:var(--muted-2)">Browser</label>
+        <select id="browserSelect" style="width:120px" title="Browser to use for execution">
+          <option value="chromium">chromium</option>
+          <option value="chrome" selected>chrome</option>
+          <option value="firefox">firefox</option>
+          <option value="webkit">webkit</option>
+        </select>
+        <button id="runBtn" class="button">Run</button>
+        <span id="datasetRunStatus" style="margin-left:8px;color:var(--muted-2)"></span>
+      </div>
+    </div>
+
+    <script id="initial-steps" type="application/json">{{ steps | tojson }}</script>
+    <script>
+      // interactive steps table with Ace-based payload editor
+      const stepsData = JSON.parse(document.getElementById('initial-steps').textContent || '[]');
+      const tbody = document.querySelector('#stepsTbl tbody');
+      const editors = {}; // ace editor instances by index
+
+      function ensureAce() {
+        return new Promise((resolve, reject) => {
+          if (window.ace) return resolve(window.ace);
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.11.2/ace.min.js';
+          s.onload = () => resolve(window.ace);
+          s.onerror = (e) => reject(e);
+          document.head.appendChild(s);
+        });
+      }
+
+      function render() {
+        // cleanup any existing Ace editors to avoid stale instances bound to removed DOM nodes
+        try {
+          for (const k of Object.keys(editors)) {
+            try {
+              const ed = editors[k];
+              if (ed) {
+                try { if (typeof ed.destroy === 'function') ed.destroy(); } catch (e) { }
+                // try to remove its container from DOM if still present
+                try { if (ed.container && ed.container.parentNode) ed.container.parentNode.removeChild(ed.container); } catch (e) { }
+              }
+            } catch (e) { }
+            try { delete editors[k]; } catch (e) { }
+          }
+        } catch (e) { console.error('Failed to cleanup editors', e); }
+
+        tbody.innerHTML = '';
+        stepsData.forEach((s, i) => {
+          const tr = document.createElement('tr');
+          // prefer explicit action (verb). If action is the legacy 'ui', prefer type when it's the verb
+          const actionVal = s.action || '';
+          tr.innerHTML = `
+              <td data-label="#" style="vertical-align:middle">${i + 1}</td>
+              <td data-label="Type"><div class="muted" style="padding-top:4px">${escapeHtml(s.type || '')}</div></td>
+              <td data-label="Action"><input class="input" data-idx="${i}" data-field="action" value="${escapeHtml(actionVal)}" style="width:120px" disabled /></td>
+              <td data-label="Selector"><input class="input" data-idx="${i}" data-field="selectorRef" value="${escapeHtml(s.selectorRef || '')}" disabled /></td>
+              <td data-label="Value"><input class="input" data-idx="${i}" data-field="value" value="${escapeHtml((s.action === 'goto' ? (s.url || '') : (s.value || '')))}" disabled /></td>
+              <td data-label="Store As"><input class="input" data-idx="${i}" data-field="store_as" value="${escapeHtml(s.store_as || '')}" disabled /></td>
+              <td data-label="Actions" style="vertical-align:middle">
+                <div class="actions-cell">
+                  <button class="action-btn" title="Move up" onclick="moveUp(${i})"> 
+                    <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  </button>
+                  <button class="action-btn" title="Move down" onclick="moveDown(${i})"> 
+                    <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </button>
+                  <button class="action-btn" title="Delete" onclick="removeStep(${i})"> 
+                    <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                  <button class="action-btn" title="Edit payload" onclick="togglePayload(${i})"> 
+                    <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+                  </button>
+                </div>
+              </td>
+            `;
+          tbody.appendChild(tr);
+
+          // payload inspector row (hidden by default). Ace editor is initialized lazily on toggle
+          const payloadTr = document.createElement('tr');
+          payloadTr.id = 'payload-row-' + i;
+          payloadTr.style.display = 'none';
+          payloadTr.innerHTML = `<td colspan="7" style="padding:6px;background:var(--card-bg)"><div style="display:flex;gap:6px;flex-direction:column"><div id="payload-editor-${i}" style="width:100%;height:120px"></div><div id="payload-error-${i}" style="color:#f88;margin-top:6px"></div><div style="display:flex;gap:6px;margin-top:6px"><button class="button" onclick="applyPayload(${i})">Apply Payload</button><button class="button ghost" onclick="togglePayload(${i})">Close</button></div></div></td>`;
+          tbody.appendChild(payloadTr);
+          // make main row draggable for reordering
+          tr.draggable = true;
+          tr.style.cursor = 'move';
+          tr.dataset.idx = i;
+          tr.addEventListener('dragstart', (ev) => {
+            try { ev.dataTransfer.setData('text/plain', String(i)); ev.dataTransfer.effectAllowed = 'move'; } catch (e) { }
+          });
+          tr.addEventListener('dragover', (ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; tr.style.outline = '2px dashed rgba(255,255,255,0.06)'; });
+          tr.addEventListener('dragleave', () => { tr.style.outline = ''; });
+          tr.addEventListener('drop', (ev) => { ev.preventDefault(); tr.style.outline = ''; const from = parseInt(ev.dataTransfer.getData('text/plain')); const to = parseInt(tr.dataset.idx); if (isNaN(from) || isNaN(to)) return; if (from === to) return; const item = stepsData.splice(from, 1)[0]; stepsData.splice(to, 0, item); render(); setDirty(true); });
+        });
+          // attach input handlers
+        for (const inp of tbody.querySelectorAll('input')) {
+          inp.addEventListener('input', (e) => {
+            const idx = parseInt(e.target.dataset.idx);
+            const field = e.target.dataset.field;
+            const val = e.target.value;
+            // For goto steps, the "value" input maps to the 'url' property.
+            if (field === 'value' && stepsData[idx] && stepsData[idx].action === 'goto') {
+              stepsData[idx].url = val;
+            } else {
+              stepsData[idx][field] = val;
+            }
+            setDirty(true);
+          });
+        }
+        // refresh UI helpers
+        applyEllipsis(); initColumnResizers();
+      }
+
+      function moveUp(i) { if (i <= 0) return; const item = stepsData.splice(i, 1)[0]; stepsData.splice(i - 1, 0, item); render(); setDirty(true); }
+      function moveDown(i) { if (i >= stepsData.length - 1) return; const item = stepsData.splice(i, 1)[0]; stepsData.splice(i + 1, 0, item); render(); setDirty(true); }
+      function removeStep(i) { stepsData.splice(i, 1); render(); setDirty(true); }
+      document.getElementById('addStepBtn').addEventListener('click', (e) => {
+        try {
+          e.preventDefault();
+          const actionCategory = document.getElementById('new-action').value;
+          const verb = document.getElementById('new-type').value;
+          const sel = document.getElementById('new-selector').value;
+          const val = document.getElementById('new-value').value;
+          const storeas = document.getElementById('new-storeas')?.value;
+          // canonical: type describes category (e.g. 'ui'), action is the verb (click/fill/etc.)
+          const step = { type: actionCategory || 'ui', action: verb, selectorRef: sel, value: val };
+          if (storeas) step.store_as = storeas;
+          if (verb === 'goto' || step.action === 'goto') {
+            step.url = val || '';
+            // keep value empty for goto steps to avoid confusion
+            step.value = '';
+          }
+          stepsData.push(step);
+          document.getElementById('new-selector').value = '';
+          document.getElementById('new-value').value = '';
+          render();
+          setDirty(true);
+          document.getElementById('saveError').style.display = 'none';
+          document.getElementById('saveError').innerText = '';
+        } catch (e) { console.error('Failed to add step', e); alert('Failed to add step: ' + e); }
+      });
+
+      function togglePayload(i) {
+        const row = document.getElementById('payload-row-' + i);
+        if (!row) return;
+        // use computed style to determine current visibility reliably
+        const isHidden = window.getComputedStyle(row).display === 'none';
+        if (isHidden) {
+          // show
+          row.style.display = '';
+          // initialize ace editor lazily
+          ensureAce().then(() => {
+            if (!editors[i]) {
+              const el = document.getElementById('payload-editor-' + i);
+              editors[i] = ace.edit(el);
+              editors[i].getSession().setMode('ace/mode/json');
+              editors[i].setTheme('ace/theme/monokai');
+              editors[i].setOptions({ useWorker: false });
+              try { editors[i].setValue(JSON.stringify(stepsData[i], null, 2), -1); } catch (e) { editors[i].setValue('{}', -1); }
+            }
+          }).catch((e) => { console.error('Failed to load Ace', e); document.getElementById('payload-editor-' + i).innerText = JSON.stringify(stepsData[i] || {}, null, 2); });
+        } else {
+          // hide
+          row.style.display = 'none';
+        }
+      }
+
+      function applyPayload(i) {
+        const errEl = document.getElementById('payload-error-' + i);
+        if (editors[i]) {
+          const txt = editors[i].getValue();
+          try {
+            const obj = JSON.parse(txt);
+            // Merge parsed payload with existing step to avoid unintentionally
+            // clearing properties (e.g. url for goto steps) when they are
+            // omitted from the editor JSON.
+            stepsData[i] = Object.assign({}, stepsData[i] || {}, obj);
+            errEl.innerText = '';
+            render();
+            setDirty(true);
+          } catch (e) { errEl.innerText = 'JSON error: ' + e.message; }
+          return;
+        }
+        // fallback: look for textarea
+        const ta = document.getElementById('payload-' + i);
+        if (!ta) return alert('Payload editor not found');
+        try {
+          const obj = JSON.parse(ta.value);
+          stepsData[i] = obj;
+          render();
+          setDirty(true);
+        } catch (e) { alert('Invalid JSON: ' + e.message); }
+      }
+
+
+
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[s]));
+      }
+
+      function syncStepsData() {
+        try {
+          // copy inputs back into stepsData
+          const inputs = tbody.querySelectorAll('input[data-idx]');
+          for (const inp of inputs) {
+            const idx = parseInt(inp.dataset.idx);
+            const field = inp.dataset.field;
+            if (!Number.isNaN(idx) && typeof field === 'string') {
+              stepsData[idx] = stepsData[idx] || {};
+              // for goto steps, the value input maps to 'url'
+              if (field === 'value' && stepsData[idx].action === 'goto') {
+                stepsData[idx].url = inp.value;
+              } else {
+                stepsData[idx][field] = inp.value;
+              }
+            }
+          }
+          // sync ace editors if open
+          for (const k of Object.keys(editors)) {
+            const i = parseInt(k);
+            try {
+              const txt = editors[i].getValue();
+              if (txt) {
+                try { const obj = JSON.parse(txt); stepsData[i] = Object.assign({}, stepsData[i] || {}, obj); } catch (e) { /* ignore invalid JSON here */ }
+              }
+            } catch (e) { console.error('sync editor error', e); }
+          }
+        } catch (e) { console.error('syncStepsData error', e); }
+      }
+
+      async function prepareAndSubmit() {
+        // ensure inputs/editors are reflected in stepsData
+        syncStepsData();
+        const btn = document.querySelector('#saveStepsForm button');
+        const errEl = document.getElementById('saveError');
+        try {
+          btn.disabled = true; errEl.style.display = 'none'; errEl.innerText = '';
+          const jsonStr = JSON.stringify(stepsData, null, 2);
+          console.log('Submitting steps payload:', jsonStr);
+          const fd = new FormData(); fd.append('content', jsonStr);
+          const res = await fetch(document.getElementById('saveStepsForm').action, { method: 'POST', body: fd, headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+          if (res.ok) {
+            const ct = res.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+              const j = await res.json();
+              if (j.ok) { window.location = window.location.pathname + '?saved=1'; return; }
+              const msg = j.error || JSON.stringify(j);
+              errEl.innerText = 'Save failed: ' + msg; errEl.style.display = 'block';
+              return;
+            }
+            if (res.redirected) { window.location = res.url; return; }
+            window.location.reload();
+          } else {
+            const txt = await res.text();
+            errEl.innerText = 'Save failed: ' + res.status + '\n' + txt.substring(0, 400);
+            errEl.style.display = 'block';
+          }
+        } catch (e) { console.error(e); errEl.innerText = 'Failed to save steps: ' + e; errEl.style.display = 'block'; }
+        finally { if (btn) btn.disabled = false; }
+      }
+
+      // dirty tracking for Save button
+      let isDirty = false;
+      // Save button is now type="button"; select the button regardless of type
+      const saveBtn = document.querySelector('#saveStepsForm button');
+      function setDirty(v = true) { isDirty = v; if (saveBtn) { saveBtn.disabled = !v; saveBtn.classList.toggle('unsaved', v); } }
+      function clearDirty() { setDirty(false); }
+
+      // initial render
+      render();
+      // disable save initially (no changes)
+      clearDirty();
+
+      // load keywords for Action->Type mapping
+      let KEYWORDS = {};
+      function populateActions() {
+        const actEl = document.getElementById('new-action');
+        actEl.innerHTML = '';
+        for (const k of Object.keys(KEYWORDS)) {
+          const opt = document.createElement('option'); opt.value = k; opt.innerText = k; actEl.appendChild(opt);
+        }
+      }
+      function populateTypesFor(action) {
+        const tEl = document.getElementById('new-type'); tEl.innerHTML = '';
+        const arr = Array.isArray(KEYWORDS[action]) ? KEYWORDS[action] : [];
+        for (const v of arr) { const o = document.createElement('option'); o.value = v; o.innerText = v; tEl.appendChild(o); }
+      }
+      // load builtin keywords first
+      fetch('/static/keywords.json').then(r => r.ok ? r.json() : {}).then(j => { KEYWORDS = j || {}; populateActions(); populateTypesFor(Object.keys(KEYWORDS)[0] || 'ui'); }).catch(() => { /* ignore */ });
+      // fetch custom keywords and merge under a 'custom' action so users can pick them as types
+      fetch('/keywords/list.json').then(r => r.ok ? r.json() : {}).then(j => {
+        if (j && j.ok && Array.isArray(j.custom) && j.custom.length) {
+          KEYWORDS = KEYWORDS || {};
+          // merge or override 'custom' action
+          KEYWORDS['custom'] = j.custom;
+          // refresh UI if needed
+          populateActions();
+          // if current action selection is 'custom' or no selection, pick it
+          const cur = document.getElementById('new-action').value;
+          if (!cur || cur === '') {
+            populateTypesFor('custom');
+          }
+        }
+      }).catch(() => {/* ignore */ });
+      document.getElementById('new-action').addEventListener('change', (e) => { populateTypesFor(e.target.value); });
+
+      // Note: dataset dropdown and "Run with dataset" removed per UI change
+
+      // normal run (no dataset)
+      document.getElementById('runBtn').addEventListener('click', async (e) => {
+        const statusEl = document.getElementById('datasetRunStatus');
+        statusEl.innerText = '';
+        const btn = document.getElementById('runBtn');
+      try {
+        // disable button while request is in-flight
+        if (btn) { btn.disabled = true; }
+          const form = new FormData(); form.append('name', '{{ tc.filename }}');
+          // include concurrency and browser selected in the Run UI
+          try { form.append('concurrency', document.getElementById('concurrencySelect')?.value || '1'); } catch (e) { }
+          try { form.append('browser', document.getElementById('browserSelect')?.value || 'chrome'); } catch (e) { }
+          const res = await fetch('/run', { method: 'POST', body: form, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+          if (res.ok) {
+            const ct = (res.headers.get('content-type') || '').toLowerCase();
+            if (ct.includes('application/json')) {
+              try {
+                  const j = await res.json();
+                  if (j && j.ok) {
+                    statusEl.innerText = 'Run started (runs: ' + (j.runs || []).length + ')';
+                    showToast('Run started and is running in background. Reports will appear under Reporting soon.');
+                  } else {
+                    statusEl.innerText = 'Run started';
+                    showToast('Run started and is running in background. Reports will appear under Reporting soon.');
+                  }
+                } catch (e) { const txt = await res.text(); statusEl.innerText = 'Started (non-JSON response): ' + txt.substring(0, 400); showToast('Run started and is running in background. Reports will appear under Reporting soon.'); }
+            } else {
+              const txt = await res.text(); statusEl.innerText = 'Started (non-JSON response): ' + txt.substring(0, 400);
+            }
+          } else {
+            const txt = await res.text(); statusEl.innerText = 'Failed to start run: ' + res.status + '\n' + txt.substring(0, 400);
+          }
+        } catch (e) { console.error(e); statusEl.innerText = 'Error starting run: ' + e; showToast('Failed to start run'); }
+        finally {
+          if (btn) { btn.disabled = false; }
+        }
+      });
+
+      // small toast helper
+      function showToast(msg, timeout = 4000) {
+        try {
+          const t = document.createElement('div');
+          t.id = 'run-toast';
+          t.style.position = 'fixed';
+          t.style.right = '24px';
+          t.style.bottom = '24px';
+          t.style.background = 'linear-gradient(90deg,var(--accent),#06b6d4)';
+          t.style.color = 'white';
+          t.style.padding = '10px 14px';
+          t.style.borderRadius = '8px';
+          t.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
+          t.innerText = msg;
+          document.body.appendChild(t);
+          setTimeout(() => t.remove(), timeout);
+        } catch (e) { console.error('toast error', e); }
+      }
+
+      // ----- column resizer init -----
+      function initColumnResizers() {
+        const ths = document.querySelectorAll('#stepsTbl thead th');
+        const cols = document.querySelectorAll('#stepsTbl colgroup col');
+        // apply saved widths if present
+        try {
+          const key = 'stepsColsWidth_' + '{{ tc.id }}';
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const arr = JSON.parse(raw);
+            // persisted values may be px or %; prefer applying px widths for precise alignment
+            arr.forEach((w, i) => {
+              if (!cols[i]) return;
+              // if stored value looks like a number or endsWith px, apply as-is; otherwise leave default
+              if (typeof w === 'string' && (w.endsWith('px') || w.endsWith('%'))) {
+                cols[i].style.width = w;
+              } else if (typeof w === 'number') {
+                cols[i].style.width = w + 'px';
+              }
+            });
+          }
+        } catch (e) {/* ignore */ }
+
+        ths.forEach((th, idx) => {
+          if (th.querySelector('.col-resizer')) return; // already added
+          const res = document.createElement('div'); res.className = 'col-resizer';
+          res.style.position = 'absolute'; res.style.right = '0'; res.style.top = '0'; res.style.bottom = '0';
+          th.style.position = 'relative'; th.appendChild(res);
+          let startX, startW;
+          res.addEventListener('mousedown', (e) => {
+            startX = e.clientX; startW = cols[idx].getBoundingClientRect().width; document.body.style.cursor = 'col-resize';
+            function onMove(ev) { const delta = ev.clientX - startX; const newW = Math.max(40, startW + delta); cols[idx].style.width = newW + 'px'; }
+            function onUp() {
+              // persist widths as px for fidelity
+              try {
+                const key = 'stepsColsWidth_' + '{{ tc.id }}';
+                const arr = Array.from(cols).map(c => {
+                  const w = c.style.width;
+                  if (w && w.endsWith('px')) return w;
+                  // fallback to computed px width
+                  return Math.round(window.getComputedStyle(c).width);
+                });
+                localStorage.setItem(key, JSON.stringify(arr));
+              } catch (e) { }
+              document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.body.style.cursor = '';
+            }
+            document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+          });
+        });
+      }
+
+      // apply ellipsis and title to static cells (non-input)
+      function applyEllipsis() {
+        for (const td of document.querySelectorAll('#stepsTbl td')) {
+          if (td.querySelector('input') || td.querySelector('textarea') || td.querySelector('.action-btn')) continue;
+          td.classList.add('ellipsis');
+          const txt = td.innerText && td.innerText.trim();
+          if (txt && txt.length > 40) td.setAttribute('title', txt);
+          else td.removeAttribute('title');
+        }
+      }
+
+      // run resizer and ellipsis after initial render and after each render
+      initColumnResizers(); applyEllipsis();
+    </script>
+  </div>
+
+  <!-- right column removed -->
+</div>
+{% if request.query_params.get('saved') %}
+<div id="toast"
+  style="position:fixed;right:24px;bottom:24px;background:linear-gradient(90deg,var(--accent),#06b6d4);color:white;padding:10px 14px;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.6)">
+  Saved</div>
+<script>setTimeout(() => document.getElementById('toast')?.remove(), 2000)</script>
+{% endif %}
+{% endblock %}

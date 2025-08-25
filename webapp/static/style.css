@@ -1,0 +1,135 @@
+:root{
+	--bg:#000000; --bg-2:#050505; --accent:#7c3aed; --muted:#9aa6bf; --card:#0b0b0d; --panel:#030305; --text:#e6eefc; --muted-2:rgba(230,238,252,0.5);
+}
+body { font-family: Inter, system-ui, -apple-system, Roboto, Arial; padding: 0; margin: 0; background: linear-gradient(180deg,var(--bg), var(--bg-2)); color:var(--text); }
+textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', monospace; }
+form { margin: 6px 0; }
+
+/* Layout */
+.app-shell { display: flex; min-height: 100vh; }
+.sidebar { width: 260px; background: linear-gradient(180deg,#030305,#060607); color: var(--text); padding: 22px; box-sizing: border-box; display:flex; flex-direction:column }
+.brand { display:flex; align-items:center; gap:12px; margin-bottom:18px; text-decoration: none; color: inherit; }
+.brand:hover { text-decoration: none; }
+/* Remove underline from the brand text but keep the logo and link intact */
+.brand h2, .brand .muted { text-decoration: none; border-bottom: none; background-image: none; }
+.brand { cursor: pointer; }
+.logo { width:44px; height:44px; background: linear-gradient(135deg,var(--accent), #06b6d4); border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; box-shadow: 0 10px 36px rgba(124,58,237,0.22); }
+.sidebar h2 { font-size: 18px; margin: 0; color: var(--text) }
+.sidebar nav { margin-top:10px }
+.sidebar nav a { display:flex; align-items:center; gap:10px; color: #cfe8ff; text-decoration: none; padding: 10px 12px; border-radius: 8px; margin-bottom:8px; transition: all .18s ease; }
+.sidebar nav a .icon { width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; opacity:0.95 }
+.sidebar nav a:hover { transform: translateX(6px); background: rgba(255,255,255,0.02); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
+.sidebar nav a.active { background: linear-gradient(90deg, rgba(124,58,237,0.14), rgba(6,182,212,0.04)); box-shadow: 0 8px 30px rgba(6,182,212,0.06); color:var(--text) }
+.sidebar .muted { color: var(--muted-2); font-size:0.85em }
+
+.content { flex: 1; padding: 28px; box-sizing: border-box; background: transparent }
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px }
+
+.card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:16px; border-radius:12px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.02) }
+.card h3 { margin-top:0; }
+
+.button { background: linear-gradient(90deg,var(--accent), #06b6d4); color:white; border: none; padding:8px 12px; border-radius:8px; cursor:pointer; box-shadow: 0 12px 34px rgba(124,58,237,0.22); }
+.button.ghost { background: transparent; color:var(--text); box-shadow:none; border:1px solid rgba(255,255,255,0.04) }
+
+/* Normalize native button elements and input submit/button to match .button */
+button, input[type="submit"], input[type="button"], .button {
+	font-family: inherit;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+/* Disabled state */
+button[disabled], input[disabled], .button[disabled], .button.disabled {
+	opacity: 0.65;
+	cursor: not-allowed;
+	box-shadow: none;
+}
+
+/* Visual for Save button when there are unsaved changes */
+.button.unsaved { background: linear-gradient(90deg,#ff8c00,#ffd27f); color:#111; box-shadow: 0 12px 34px rgba(255,140,0,0.18); }
+
+.input, input[type=text], input[type=file], textarea { padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background: rgba(255,255,255,0.02); color:var(--text) }
+
+.actions-cell { display:flex; gap:6px; align-items:center }
+.action-btn { background: transparent; border: 1px solid rgba(255,255,255,0.04); padding:6px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text) }
+.action-btn:hover { background: rgba(255,255,255,0.02); transform: translateY(-1px) }
+.action-icon { width:16px; height:16px }
+
+/* Steps table sizing and wrapping */
+#stepsTbl { width:100%; table-layout: fixed; border-collapse: collapse; }
+#stepsTbl th, #stepsTbl td { padding:8px 10px; text-align:left; vertical-align:top; box-sizing: border-box; }
+#stepsTbl td input.input { width:100%; box-sizing: border-box; white-space:normal; overflow-wrap:anywhere; }
+
+/* Make action buttons consistent size */
+.action-btn { width:36px; height:36px; padding:0; }
+.action-btn .action-icon { width:18px; height:18px }
+
+/* Column resizer */
+.col-resizer { position:absolute; right:0; top:0; width:8px; cursor:col-resize; user-select:none; height:100%; }
+.th-resizer-wrap{ position:relative }
+
+/* visual for resizer handle */
+.col-resizer::before{ content:''; display:block; width:2px; background: rgba(255,255,255,0.06); height:60%; margin:auto 0; position:relative; left:3px; }
+#stepsTbl thead th{ position:relative }
+
+/* Ellipsis for static cells */
+.ellipsis { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+
+.list-item { display:flex; justify-content:space-between; align-items:center; padding:10px; border-radius:8px; }
+.list-item + .list-item { margin-top:8px }
+
+.tag { background: rgba(124,58,237,0.12); color:var(--text); padding:4px 10px; border-radius:999px; margin-right:6px; font-size:0.85em }
+
+.muted { color:var(--muted-2); font-size:0.92em }
+
+@media (max-width:900px){ .sidebar{ display:none } .content{ padding:16px } }
+
+/* Light theme overrides when body.light is present */
+body.light{
+	--bg: #f7f9fc; --bg-2: #e9f0fb; --accent: #7c3aed; --muted: #64748b; --card: #ffffff; --panel:#f6f9ff; --text: #0b1220; --muted-2: rgba(11,18,32,0.5);
+}
+body.light .sidebar{ background: linear-gradient(180deg,#f8fafc,#eef6ff); color:#0b1220 }
+body.light .card{ background: var(--card); box-shadow: 0 6px 18px rgba(2,6,23,0.04); border:1px solid rgba(15,23,42,0.04) }
+body.light .input, body.light input[type=text], body.light input[type=file], body.light textarea { background: #fff; color:var(--text); border:1px solid rgba(2,6,23,0.06) }
+body.light .button.ghost { color:var(--accent); border:1px solid rgba(124,58,237,0.12) }
+body.light .muted { color: #6b7280 }
+
+/* Responsive behavior: allow horizontal scroll on narrow screens and stack rows for very small screens */
+.table-wrapper{ overflow:auto }
+@media (max-width:900px){
+	/* stack the table rows on narrower screens to avoid horizontal scrolling */
+	.table-wrapper{ overflow:auto }
+	#stepsTbl{ min-width:0 }
+}
+
+@media (max-width:640px){
+	/* stack table rows for mobile */
+	#stepsTbl, #stepsTbl thead, #stepsTbl tbody, #stepsTbl th, #stepsTbl td, #stepsTbl tr { display:block; }
+	#stepsTbl thead { display:none }
+	#stepsTbl tr { margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.03); }
+	#stepsTbl td { display:flex; justify-content:space-between; padding:8px 10px; }
+	#stepsTbl td::before { content: attr(data-label); font-weight:600; margin-right:12px; color:var(--muted-2); }
+}
+
+/* Add-step row layout to match table column proportions */
+.add-step-row{ display:flex; gap:12px; align-items:center; flex-wrap:nowrap; }
+.add-step-row .a-action{ flex: 0 0 70px; min-width:70px }
+.add-step-row .a-type{ flex: 0 0 160px; min-width:140px }
+.add-step-row .a-selector{ flex: 1 1 50px; min-width:50px; max-width:35%; }
+.add-step-row .a-value{ flex: 0 0 200px; min-width:120px }
+.add-step-row .a-add{ margin-left:8px; flex: 0 0 auto }
+
+@media (max-width:900px){
+	/* Keep add-step controls on a single row on narrower screens by allowing
+	   inputs to shrink and allowing horizontal scrolling when needed. This
+	   replaces the previous behavior that forced full-width stacking. */
+	.add-step-row { gap:8px; flex-wrap:nowrap; overflow-x:auto; }
+	.add-step-row .a-action{ flex: 0 0 70px; min-width:60px; }
+	.add-step-row .a-type{ flex: 0 0 160px; min-width:120px; }
+	.add-step-row .a-selector{ flex: 1 1 50px; min-width:50px; max-width:35%; }
+	.add-step-row .a-value{ flex: 0 0 160px; min-width:100px; }
+}

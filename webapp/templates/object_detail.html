@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Object Folder - {{ name }}{% endblock %}
+
+{% block header %}Object Folder: {{ name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>Locators</h3>
+    <div style="margin-bottom:10px;display:flex;gap:8px;align-items:flex-start">
+        <input id="add-key" class="input" placeholder="Selector key (selectorRef)" style="width:30%" />
+        <textarea id="add-selectors" class="input" placeholder="One selector per line"
+            style="width:60%;height:64px"></textarea>
+        <button class="button" onclick="addSelector()" style="height:40px;align-self:flex-end">Add</button>
+    </div>
+    <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center">
+        <input id="locator-search" class="input" placeholder="Search keys or selectors" style="width:60%" oninput="filterLocators()" />
+        <button class="button ghost" onclick="clearSearch()" style="height:34px">Clear</button>
+        <div class="muted" style="margin-left:auto;font-size:12px">Search is case-insensitive and matches key or selector content.</div>
+    </div>
+    {% if locators and locators|length > 0 %}
+    <table style="width:100%;border-collapse:collapse">
+        <thead>
+            <tr>
+                <th style="text-align:left;padding:6px;border-bottom:1px solid #ddd">Key (selectorRef)</th>
+                <th style="text-align:left;padding:6px;border-bottom:1px solid #ddd">Selectors (top order preserved)
+                </th>
+                <th style="padding:6px;border-bottom:1px solid #ddd">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for k, v in locators.items() %}
+            <tr id="locator-row-{{ loop.index0 }}" data-key="{{ k|lower|e }}" data-selectors="{{ (v.selectors|join('|||'))|lower|e }}">
+                <td style="padding:8px;border-bottom:1px solid #f3f3f3" id="locator-key-{{ loop.index0 }}">{{ k }}</td>
+                <td style="padding:8px;border-bottom:1px solid #f3f3f3" id="locator-selectors-{{ loop.index0 }}">
+                    <ol id="selector-list-{{ loop.index0 }}">
+                        {% for s in v.selectors %}
+                        <li><code>{{ s }}</code></li>
+                        {% endfor %}
+                    </ol>
+                </td>
+                <td style="padding:8px;border-bottom:1px solid #f3f3f3">
+                    <button class="button" title="Edit" onclick="startEdit({{ loop.index0 }})" style="padding:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+                        </svg>
+                    </button>
+                    <button class="button ghost" title="Delete" onclick="deleteLocator({{ loop.index0 }})"
+                        style="padding:6px;margin-left:6px">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                            <path d="M10 11v6"></path>
+                            <path d="M14 11v6"></path>
+                        </svg>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="muted">No locators found for this folder.</div>
+    {% endif %}
+</div>
+
+<script>
+    const folderName = {{ name | tojson }};
+    function startEdit(idx) {
+        const keyEl = document.getElementById('locator-key-' + idx);
+        const selEl = document.getElementById('locator-selectors-' + idx);
+        if (!keyEl || !selEl) return;
+        const origKey = keyEl.innerText.trim();
+        // collect selectors into array
+        const list = document.getElementById('selector-list-' + idx);
+        let selectors = [];
+        if (list) {
+            for (const li of list.querySelectorAll('li')) selectors.push(li.innerText.trim());
+        }
+        keyEl.innerHTML = `<input id="edit-key-${idx}" class="input" value="${escapeHtml(origKey)}" style="width:100%"/>`;
+        selEl.innerHTML = `<textarea id="edit-selectors-${idx}" class="input" style="width:100%;height:140px">${escapeHtml(selectors.join('\n'))}</textarea>`;
+        const row = document.getElementById('locator-row-' + idx);
+        const actionsCell = row.children[2];
+        actionsCell.innerHTML = `<button class="button" onclick="saveEdit(${idx}, '${escapeJs(origKey)}')">Save</button> <button class="button ghost" onclick="cancelEdit(${idx})">Cancel</button>`;
+    }
+
+    function cancelEdit(idx) { window.location.reload(); }
+
+    async function saveEdit(idx, origKey) {
+        const newKey = document.getElementById('edit-key-' + idx).value.trim();
+        const selectorsTxt = document.getElementById('edit-selectors-' + idx).value || '';
+        const selectors = selectorsTxt.split('\n').map(s => s.trim()).filter(Boolean);
+        try {
+            const res = await fetch(`/objects/${encodeURIComponent(folderName)}/locators/save`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ oldKey: origKey, newKey: newKey, selectors: selectors })
+            });
+            if (!res.ok) { const txt = await res.text(); alert('Save failed: ' + res.status + '\n' + txt); return; }
+            const j = await res.json(); if (j && j.ok) window.location.reload(); else alert('Save failed: ' + JSON.stringify(j));
+        } catch (e) { alert('Save error: ' + e); }
+    }
+
+    async function addSelector() {
+        const key = document.getElementById('add-key').value.trim();
+        const selectorsTxt = document.getElementById('add-selectors').value || '';
+        const selectors = selectorsTxt.split('\n').map(s => s.trim()).filter(Boolean);
+        if (!key) return alert('Key required');
+        try {
+            const res = await fetch(`/objects/${encodeURIComponent(folderName)}/locators/save`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ oldKey: null, newKey: key, selectors: selectors })
+            });
+            if (!res.ok) { const txt = await res.text(); alert('Add failed: ' + res.status + '\n' + txt); return; }
+            const j = await res.json(); if (j && j.ok) window.location.reload(); else alert('Add failed: ' + JSON.stringify(j));
+        } catch (e) { alert('Add error: ' + e); }
+    }
+
+    async function deleteLocator(idx) {
+        if (!confirm('Delete this locator?')) return;
+        const keyEl = document.getElementById('locator-key-' + idx);
+        if (!keyEl) return;
+        const key = keyEl.innerText.trim();
+        try {
+            const res = await fetch(`/objects/${encodeURIComponent(folderName)}/locators/delete`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ key: key })
+            });
+            if (!res.ok) { const txt = await res.text(); alert('Delete failed: ' + res.status + '\n' + txt); return; }
+            const j = await res.json(); if (j && j.ok) window.location.reload(); else alert('Delete failed: ' + JSON.stringify(j));
+        } catch (e) { alert('Delete error: ' + e); }
+    }
+
+    function filterLocators() {
+        const inp = document.getElementById('locator-search');
+        if (!inp) return;
+        const q = (inp.value || '').toLowerCase().trim();
+        const rows = document.querySelectorAll('tbody tr');
+        for (const row of rows) {
+            const key = (row.dataset.key || '').toLowerCase();
+            const sel = (row.dataset.selectors || '').toLowerCase();
+            const match = !q || key.includes(q) || sel.includes(q);
+            row.style.display = match ? '' : 'none';
+        }
+    }
+
+    function clearSearch() { const inp = document.getElementById('locator-search'); if (inp) { inp.value = ''; inp.focus(); } filterLocators(); }
+
+    function escapeHtml(str) { return String(str).replace(/[&<>'"\n]/g, (s) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;', '\n': '\n' }[s])); }
+    function escapeJs(str) { return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n'); }
+</script>
+
+{% endblock %}

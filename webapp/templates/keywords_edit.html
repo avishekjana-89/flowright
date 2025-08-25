@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Keyword - {{ filename }}{% endblock %}
+{% block header %}Edit Keyword - {{ filename }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <form method="post" action="/keywords/save">
+    <input type="hidden" name="filename" value="{{ filename }}" />
+    <label style="display:block;margin-bottom:8px;font-weight:600">Content</label>
+  <div id="editor" style="height:320px;border:1px solid #ddd;margin-top:8px"></div>
+  <textarea id="content-src" style="display:none">{{ content }}</textarea>
+  <textarea name="content" id="content-hidden" style="display:none"></textarea>
+    <div style="margin-top:12px">
+      <button class="button" type="submit">Save & Import</button>
+      <a class="button ghost" href="/keywords">Back</a>
+    </div>
+  </form>
+  <div id="kw-msg" style="margin-top:8px;color:#900;white-space:pre-wrap"></div>
+  <script>
+    (function(){
+      const form = document.querySelector('form[action="/keywords/save"]');
+      const msg = document.getElementById('kw-msg');
+      if(!form) return;
+      // load ACE
+      const aceScript = document.createElement('script');
+      aceScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.11.2/ace.js';
+      aceScript.onload = ()=>{
+        const editor = ace.edit('editor');
+        editor.setTheme('ace/theme/twilight');
+        editor.session.setMode('ace/mode/python');
+        // set initial content from hidden source textarea (preserves formatting)
+        const src = document.getElementById('content-src');
+        editor.setValue(src ? src.value : '', -1);
+        form.addEventListener('submit', ()=>{ document.getElementById('content-hidden').value = editor.getValue(); });
+      };
+      document.head.appendChild(aceScript);
+
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        msg.textContent = '';
+        const hidden = document.getElementById('content-hidden');
+        if(hidden){ hidden.value = (window.ace && ace.edit) ? ace.edit('editor').getValue() : '' }
+        const formData = new FormData(form);
+        try{
+          const res = await fetch(form.action, {method:'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'}});
+          let j;
+          const ctype = res.headers.get('content-type') || '';
+          if (ctype.includes('application/json')) {
+            j = await res.json();
+            if(!j.ok){
+              msg.textContent = j.error || 'Failed';
+              return;
+            }
+            if(j.redirect) window.location = j.redirect;
+          } else {
+            if (res.redirected && res.url) {
+              window.location = res.url;
+              return;
+            }
+            const txt = await res.text();
+            msg.textContent = (txt && txt.length>0) ? txt.substring(0,1500) : 'Unexpected non-JSON response from server';
+          }
+        }catch(err){
+          msg.textContent = err.message || String(err);
+        }
+      });
+    })();
+  </script>
+</div>
+{% endblock %}

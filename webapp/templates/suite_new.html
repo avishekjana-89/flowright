@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Suite{% endblock %}
+{% block header %}Create Suite{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <form method="post" action="/suites/create">
+      <div style="display:grid;grid-template-columns:160px 1fr 140px;gap:12px;align-items:start">
+        <h3 style="margin:0;grid-column:1/2">Create Suite</h3>
+        <div style="grid-column:2/3"></div>
+        <div style="grid-column:3/4;text-align:right"><button class="button" type="submit">Create Suite</button></div>
+
+        <label style="grid-column:1/2"><strong>Name</strong></label>
+        <div style="grid-column:2/4"><input class="input" name="name" required style="width:100%"></div>
+
+        <label style="grid-column:1/2;margin-top:6px"><strong>Description</strong></label>
+        <div style="grid-column:2/4;margin-top:6px"><textarea class="input" name="description" style="width:100%" rows="3"></textarea></div>
+
+        <label style="grid-column:1/2;margin-top:6px">Choose Test Cases</label>
+        <div style="grid-column:2/4;margin-top:6px">
+          <select name="tc_ids" multiple size="8" class="input" style="width:100%">
+            {% for tc in testcases %}
+              <option value="{{ tc.id }}">{{ tc.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="muted" style="margin-top:6px">Select multiple with Ctrl/Cmd. Order will be applied based on selection order.</div>
+        </div>
+      </div>
+    </form>
+  </div>
+{% endblock %}

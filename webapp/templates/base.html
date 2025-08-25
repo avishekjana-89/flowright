@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>{% block title %}Flowwright{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Global loader overlay and helpers moved to head so they're available to page scripts early -->
+    <style>
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      /* Minimal styling for loader; colors rely on CSS variables defined later */
+      #global-run-loader{display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.45)}
+      #global-run-loader .loader-card{background:var(--card-bg);color:var(--text-color);padding:20px 24px;border-radius:10px;display:flex;gap:12px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,0.4);max-width:90%;margin:0 16px}
+      #global-run-loader .spinner{width:36px;height:36px;border-radius:50%;border:4px solid rgba(0,0,0,0.08);border-top-color:var(--accent);animation:spin 1s linear infinite}
+    </style>
+  <script>
+      window.showLoader = function(msg) {
+        try {
+          let el = document.getElementById('global-run-loader');
+          // If loader DOM isn't present yet (scripts ran early), create it on the fly
+          if (!el) {
+            try {
+              el = document.createElement('div');
+              el.id = 'global-run-loader';
+              el.style.display = 'none';
+              el.style.position = 'fixed';
+              el.style.inset = '0';
+              el.style.zIndex = '9999';
+              el.style.alignItems = 'center';
+              el.style.justifyContent = 'center';
+              el.style.background = 'rgba(0,0,0,0.45)';
+              el.innerHTML = '<div style="background:var(--card-bg);color:var(--text-color);padding:20px 24px;border-radius:10px;display:flex;gap:12px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,0.4);max-width:90%;margin:0 16px">'
+                + '<div style="width:36px;height:36px;border-radius:50%;border:4px solid rgba(0,0,0,0.08);border-top-color:var(--accent);animation:spin 1s linear infinite"></div>'
+                + '<div style="display:flex;flex-direction:column"><div id="global-run-loader-msg" style="font-weight:600">Running...</div>'
+                + '<div id="global-run-loader-sub" style="font-size:0.9em;color:var(--muted-2);margin-top:4px">This may take a few moments.</div></div></div>';
+              document.body.appendChild(el);
+            } catch (e) {
+              console.warn('Failed to create loader DOM', e);
+            }
+          }
+          const msgEl = document.getElementById('global-run-loader-msg');
+          if (msgEl && msg) msgEl.textContent = msg;
+          if (el) el.style.display = 'flex';
+          document.body.setAttribute('aria-busy', 'true');
+        } catch (e) { console.warn('showLoader failed', e); }
+      };
+      window.hideLoader = function() {
+        try {
+          const el = document.getElementById('global-run-loader');
+          if (!el) return;
+          el.style.display = 'none';
+          document.body.removeAttribute('aria-busy');
+        } catch (e) { console.warn('hideLoader failed', e); }
+      };
+    </script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="/">
+          <div class="logo"></div>
+          <div>
+            <h2>Flowwright</h2>
+            <div class="muted">Testing workspace</div>
+          </div>
+        </a>
+        <nav>
+          <a href="/testcases" id="menu-cases"><span class="icon">📄</span> Test Cases</a>
+          <a href="/suites" id="menu-suites"><span class="icon">🧩</span> Test Suites</a>
+          <a href="/keywords" id="menu-keywords"><span class="icon">🔧</span> Custom Keywords</a>
+          <a href="/objects" id="menu-objects"><span class="icon">📁</span> Object Repository</a>
+          <a href="/testdata" id="menu-data"><span class="icon">🗂️</span> Test Data</a>
+          <a href="/files" id="menu-files"><span class="icon">🗃️</span> Files</a>
+          <a href="/reporting" id="menu-reporting"><span class="icon">📊</span> Reporting</a>
+          <a href="/profiles" id="menu-profiles"><span class="icon">👥</span> Profiles</a>
+          <a href="/settings" id="menu-settings"><span class="icon">⚙️</span> Settings</a>
+        </nav>
+        <div style="margin-top:18px" class="muted">Actions</div>
+        <nav style="margin-top:8px">
+          <a href="/testcases/new" class="ghost"><span class="icon">⬆️</span> Upload / New Test Case</a>
+        </nav>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div>
+            <strong>{% block header %}Workspace{% endblock %}</strong>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="theme-toggle" title="Toggle light/dark" class="button ghost" style="padding:6px 8px;font-size:14px">🌙</button>
+            <div class="muted"></div>
+          </div>
+        </div>
+
+        <div>
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+    </div>
+    <script>
+      // mark active sidebar link
+      (function(){
+        try{
+          const path = location.pathname || '/';
+          if(path.startsWith('/profiles')) document.getElementById('menu-profiles')?.classList.add('active');
+          else if(path.startsWith('/settings')) document.getElementById('menu-settings')?.classList.add('active');
+          else if(path.startsWith('/suites')) document.getElementById('menu-suites')?.classList.add('active');
+          else if(path.startsWith('/keywords')) document.getElementById('menu-keywords')?.classList.add('active');
+          else if(path.startsWith('/objects')) document.getElementById('menu-objects')?.classList.add('active');
+          else if(path.startsWith('/testdata')) document.getElementById('menu-data')?.classList.add('active');
+          else if(path.startsWith('/reporting')) document.getElementById('menu-reporting')?.classList.add('active');
+          else if(path.startsWith('/files')) document.getElementById('menu-files')?.classList.add('active');
+          else document.getElementById('menu-cases')?.classList.add('active');
+        }catch(e){console.warn(e)}
+      })();
+
+      // Theme toggle with persistence
+      (function(){
+        const KEY = 'nc-theme';
+        const btn = document.getElementById('theme-toggle');
+        function applyTheme(t){
+          if(t === 'light') document.body.classList.add('light');
+          else document.body.classList.remove('light');
+          if(btn) btn.textContent = (t === 'light') ? '☀️' : '🌙';
+        }
+        // init from storage or OS preference
+        let theme = localStorage.getItem(KEY);
+        if(!theme){
+          const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+          theme = prefersLight ? 'light' : 'dark';
+        }
+        applyTheme(theme);
+        if(btn){
+          btn.addEventListener('click', ()=>{
+            const now = document.body.classList.contains('light') ? 'dark' : 'light';
+            localStorage.setItem(KEY, now);
+            applyTheme(now);
+          });
+        }
+      })();
+    </script>
+    <div id="global-run-loader" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:rgba(0,0,0,0.45)">
+      <div style="background:var(--card-bg);color:var(--text-color);padding:20px 24px;border-radius:10px;display:flex;gap:12px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,0.4);max-width:90%;margin:0 16px">
+        <div style="width:36px;height:36px;border-radius:50%;border:4px solid rgba(0,0,0,0.08);border-top-color:var(--accent);animation:spin 1s linear infinite"></div>
+        <div style="display:flex;flex-direction:column">
+          <div id="global-run-loader-msg" style="font-weight:600">Tests are running...</div>
+          <div id="global-run-loader-sub" style="font-size:0.9em;color:var(--muted-2);margin-top:4px">This may take a few moments.</div>
+        </div>
+      </div>
+    </div>
+
+  {% block scripts %}{% endblock %}
+  </body>
+</html>

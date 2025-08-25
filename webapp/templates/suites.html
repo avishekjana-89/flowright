@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Test Suites{% endblock %}
+
+{% block header %}Test Suites{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <style>
+      .suites-header{display:grid;grid-template-columns:160px 1fr 160px;gap:24px;align-items:center;margin-bottom:12px}
+      .suites-header .label{color:var(--muted-2);font-size:0.95rem}
+      @media(max-width:720px){.suites-header{grid-template-columns:1fr;gap:8px}}
+    </style>
+    <div class="suites-header">
+      <div class="label"><strong>Name</strong></div>
+      <div class="label"><strong>Description</strong></div>
+      <div style="text-align:right"><a class="button" href="/suites/new">Create new Suite</a></div>
+    </div>
+    {% if suites %}
+      <style>
+        /* List layout for suites - one row per suite */
+        .suite-list { display:flex; flex-direction:column; gap:8px; margin-top:6px }
+        .suite-row { padding:10px; display:flex; align-items:center; gap:12px; box-sizing:border-box }
+  .suite-row .suite-name { width:220px; font-size:0.95rem; font-weight:600; word-break:break-word }
+  /* keep the name clickable but remove default link styling */
+  .suite-row .suite-name a { color: inherit; text-decoration: none; font-weight: inherit }
+  .suite-row .suite-name a:focus { outline: 2px solid rgba(0,0,0,0.12); outline-offset: 2px }
+        .suite-row .suite-desc { flex:1; color:var(--muted-2); font-size:0. ninerem; overflow:hidden; text-overflow:ellipsis }
+        .suite-row .suite-actions { width:140px; text-align:right }
+        @media(max-width:720px){
+          .suite-row { flex-direction:column; align-items:flex-start }
+          .suite-row .suite-name { width:100% }
+          .suite-row .suite-actions { width:100%; text-align:left; margin-top:6px }
+        }
+      </style>
+      <div class="suite-list">
+        {% for s in suites %}
+          <div class="card suite-row list-item">
+            <div class="suite-name"><a href="/suites/{{ s.id }}">{{ s.name }}</a></div>
+            <div class="suite-desc">{{ s.description }}</div>
+            <div class="suite-actions"><a class="button ghost" href="/suites/{{ s.id }}">Edit</a></div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card">No suites yet. Create one to group test cases into an ordered suite.</div>
+    {% endif %}
+  </div>
+{% endblock %}

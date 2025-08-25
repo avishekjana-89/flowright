@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Files{% endblock %}
+
+{% block header %}Files{% endblock %}
+
+{% block content %}
+  <div class="card">
+    <form id="uploadForm" action="/files/upload" method="post" enctype="multipart/form-data">
+  <input id="fileInput" class="input" type="file" name="file" />
+      <button class="button">Upload</button>
+    </form>
+  </div>
+
+  <div style="height:12px"></div>
+
+  <div class="card">
+    <ul>
+      {% for f in files %}
+      <li style="margin-bottom:8px">
+        <strong>{{ f }}</strong>
+        <div style="margin-top:6px">
+          <a href="/files/download/{{ f }}">Download</a>
+          |
+          <form action="/files/delete" method="post" style="display:inline" onsubmit="return confirm('Delete file {{ f }}?');">
+            <input type="hidden" name="name" value="{{ f }}" />
+            <button class="button ghost" type="submit" style="padding:4px 8px;margin-left:6px">Delete</button>
+          </form>
+        </div>
+      </li>
+      {% else %}
+      <li>No files</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <script>
+    document.getElementById('uploadForm')?.addEventListener('submit', function(e){
+      const inp = document.getElementById('fileInput');
+      if(!inp || !inp.files || inp.files.length === 0){
+        e.preventDefault();
+        alert('Please select a file to upload');
+      }
+    });
+  </script>
+{% endblock %}

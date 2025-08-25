@@ -1,0 +1,26 @@
+# Exclude runtime data and artifacts
+/webapp/data/
+/webapp/databases/
+/webapp/runs/
+/webapp/steps/
+/webapp/objects/
+/webapp/files/
+/webapp/__pycache__/
+
+# Project-level keywords and caches
+/keywords/
+/__pycache__/
+
+# Environment files
+.env
+.env.*
+.DS_Store
+*.log
+
+# Docker-related
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Exclude browser extension code (not needed in container)
+/extension/
