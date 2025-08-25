@@ -1,6 +1,6 @@
-# Flowwright — README
+# Flowright — README
 
-This README explains how to use the Flowwright web UI, recorder extension, test assets (testcases / suites / testdata), variable bindings (Global, Local, Testdata), profiles and settings, custom keywords, and how to build/run the app locally or with Docker.
+This README explains how to use the Flowright web UI, recorder extension, test assets (testcases / suites / testdata), variable bindings (Global, Local, Testdata), profiles and settings, custom keywords, and how to build/run the app locally or with Docker.
 
 ## Quick overview
 
@@ -36,7 +36,7 @@ Build the image and run with docker-compose (the repo contains `Dockerfile` and 
 
 ```bash
 # build locally (optional)
-docker build -t flowwright:latest .
+docker build -t Flowright:latest .
 
 # start services with docker-compose (from project root)
 docker compose up -d
@@ -80,7 +80,7 @@ The downloaded `recorded_steps.json` is a JSON array of steps compatible with th
 
 ## Creating a testcase
 
-Flowwright testcases are JSON files containing an ordered array of step objects. The web UI expects a `.json` file when you create a testcase (`/testcases/new` -> upload JSON file).
+Flowright testcases are JSON files containing an ordered array of step objects. The web UI expects a `.json` file when you create a testcase (`/testcases/new` -> upload JSON file).
 
 Example minimal testcase (save as `my_tc.json` and upload):
 
@@ -148,7 +148,7 @@ Or, since row keys are merged into the context:
 
 ## Global / Local / Testdata variable bindings
 
-Flowwright supports three variable kinds used in step value substitution:
+Flowright supports three variable kinds used in step value substitution:
 
 1. Testdata placeholders — replaced when you run a testcase with a dataset. Syntax: `{{ datasetNamespace.field }}` or `{{ field }}` for top-level merged fields. Implemented in `webapp/utils.py` `substitute_step`.
 
