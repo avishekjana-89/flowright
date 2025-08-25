@@ -4,8 +4,7 @@ This README explains how to use the Flowwright web UI, recorder extension, test 
 
 ## Quick overview
 
-- ![Test Cases UI](<img width="1437" height="720" alt="image" src="https://github.com/user-attachments/assets/2708337d-31b4-44b7-b534-346467b0955b" />)
-- *Screenshot: the Test Cases page.
+  ![Test Cases UI](https://github.com/user-attachments/assets/2708337d-31b4-44b7-b534-346467b0955b)
 - Web UI entrypoint: the FastAPI app in `webapp/` (templates and routes live in `webapp/templates` and `webapp/routers`).
 - Recorded steps live in `webapp/steps/` and are saved as JSON arrays (one file per testcase). Test data files live in `webapp/data/`.
 - Object repository (locators) live in `webapp/objects/<object-folder>/locators.json`.
