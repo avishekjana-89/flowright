@@ -32,7 +32,7 @@ uvicorn webapp.main:app --reload --port 8000
 
 ## Run with Docker
 
-Build the image (optional) and run with docker-compose (the repo contains `Dockerfile` and `docker-compose.yml`):
+Build the image and run with docker-compose (the repo contains `Dockerfile` and `docker-compose.yml`):
 
 ```bash
 # build locally (optional)
@@ -45,7 +45,7 @@ docker compose up -d
 docker compose logs -f
 ```
 
-If you prefer the image built by `docker compose` itself, the `docker compose up` call will build as needed.
+If you prefer the image built by `docker compose` itself, you can add build section by yourself as needed.
 
 ## Chrome recorder extension
 
