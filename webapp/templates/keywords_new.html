@@ -21,14 +21,15 @@ from keyword_registry import keyword
 
 @keyword('sample_kw', description='Sample created async keyword')
 async def my_keyword(page, step):
-  selector = step.get('selector')
-  if selector:
+  selectors = step.get('selectors')
+  for selector in selectors:
     try:
       # async example: await the click so it actually executes
       await page.locator(selector).click(force=True)
+      return {'success': True, 'message': 'ok', step.get('store_as'):'var-value'}
     except Exception as e:
-      return {'success': False, 'message': f'click failed: {e}'}
-  return {'success': True, 'message': 'ok', step.get('store_as'):'var-value'}{% endraw %}</script>
+      print(f"⚠️ Failed with {selector}: {e}")
+  return {'success': False, 'message': f'click failed: {e}'}{% endraw %}</script>
         <!-- ACE editor for body with line numbers; sync to hidden textarea on submit -->
         <div id="body-editor" style="height:320px;border:1px solid #ddd;margin-top:8px"></div>
         <textarea name="body" id="body-hidden" style="display:none"></textarea>

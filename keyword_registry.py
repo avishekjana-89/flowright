@@ -19,6 +19,7 @@ import logging
 from typing import Any, Callable
 import os
 import importlib.util
+import ast
 import re
 
 logger = logging.getLogger(__name__)
@@ -98,6 +99,66 @@ def _safe_module_name_from_path(path: str) -> str:
     return f"keywords_{name}"
 
 
+def _is_source_safe(source: str) -> tuple[bool, list]:
+    """Conservative AST-based source check.
+
+    Returns (True, []) when the source passes the lightweight checks.
+    Returns (False, [reasons...]) when it contains constructs we disallow.
+
+    This is a pre-filter to reduce accidental or naive dangerous keywords
+    being executed in-process. It is NOT a security boundary and should be
+    combined with isolation for untrusted code.
+    """
+    blacklist_calls = {"eval", "exec", "compile", "open", "__import__", "input", "execfile"}
+    reasons: list = []
+    try:
+        tree = ast.parse(source)
+    except Exception as e:
+        return False, [f"parse-error: {e}"]
+
+    class Checker(ast.NodeVisitor):
+        def __init__(self):
+            self.errs: list = []
+
+        def visit_Import(self, node):
+            # Only allow a very small whitelist of import roots for keyword files.
+            # This permits importing the local `keyword_registry` decorator and a
+            # few safe stdlib modules while rejecting broader imports that could
+            # enable escapes.
+            allowed_import_roots = {"keyword_registry", "typing", "json", "re", "dataclasses"}
+            for alias in node.names:
+                root = alias.name.split('.')[0]
+                if root not in allowed_import_roots:
+                    self.errs.append(("import not allowed: " + alias.name, node.lineno))
+
+        def visit_ImportFrom(self, node):
+            allowed_import_roots = {"keyword_registry", "typing", "json", "re", "dataclasses"}
+            base = (node.module or "").split('.')[0]
+            # allow relative imports (node.module may be None or start with '.')
+            if base and base not in allowed_import_roots:
+                self.errs.append(("import-from not allowed: " + (node.module or ""), node.lineno))
+
+        def visit_Call(self, node):
+            fn = node.func
+            if isinstance(fn, ast.Name) and fn.id in blacklist_calls:
+                self.errs.append((f"calling {fn.id} not allowed", node.lineno))
+            self.generic_visit(node)
+
+        def visit_Attribute(self, node):
+            # discourage access to dunder attributes
+            if isinstance(node.attr, str) and node.attr.startswith("__"):
+                self.errs.append(("dunder attribute access not allowed", node.lineno))
+            self.generic_visit(node)
+
+        def visit_Name(self, node):
+            if node.id and node.id.startswith("__"):
+                self.errs.append(("dunder name not allowed", node.lineno))
+
+    c = Checker()
+    c.visit(tree)
+    return (len(c.errs) == 0), c.errs
+
+
 def load_keywords_from_dir(dir_path: str) -> dict:
     """Load all .py files from dir_path into the current process so module-level
     keyword registrations (via @keyword) run and populate the registry.
@@ -113,6 +174,20 @@ def load_keywords_from_dir(dir_path: str) -> dict:
             continue
         fpath = os.path.join(dir_path, fname)
         try:
+            # Read source and run a conservative AST pre-check to reject
+            # obviously dangerous constructs before executing module code.
+            try:
+                with open(fpath, 'r', encoding='utf-8') as fh:
+                    src = fh.read()
+            except Exception as e:
+                results["errors"][fpath] = f"could not read file: {e}"
+                continue
+
+            ok, reasons = _is_source_safe(src)
+            if not ok:
+                results["errors"][fpath] = f"AST check failed: {reasons}"
+                continue
+
             mod_name = _safe_module_name_from_path(fpath)
             spec = importlib.util.spec_from_file_location(mod_name, fpath)
             if spec is None or spec.loader is None:
