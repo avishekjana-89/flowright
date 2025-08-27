@@ -597,6 +597,22 @@ async def run_step(state, step):
 
         return attr_str
     
+    elif step_type == "storeLocatorCount":
+        count = await try_locator(context, step, lambda sel, ctx: ctx.locator(sel).count())
+
+        if count is False:
+            return False
+        count = 0 if count is None else count
+
+        if "store_as" in step:
+            variables[step["store_as"]] = count
+            try:
+                log(f"💾 Stored local variable: {step['store_as']} = {variables.get(step['store_as'])}")
+            except Exception:
+                pass
+
+        return count
+    
     elif step_type == "dragAndDrop":
         async def drag_and_drop(sel, ctx):
             locator = ctx.locator(sel)

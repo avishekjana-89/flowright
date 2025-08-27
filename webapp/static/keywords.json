@@ -16,6 +16,7 @@
         "switchToWindow",
         "getText",
         "getAttribute",
+        "storeLocatorCount",
         "verifyElementText",
         "verifyElementAttribute",
         "verifyElementValue",
