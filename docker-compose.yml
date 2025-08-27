@@ -20,4 +20,7 @@ services:
       - ./webapp/files:/app/webapp/files
       - ./keywords:/app/keywords
     restart: unless-stopped
+    shm_size: 2g
+    mem_limit: 16g
+    cpus: "4.0"
     tty: true

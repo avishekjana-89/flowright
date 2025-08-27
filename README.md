@@ -35,7 +35,7 @@ uvicorn webapp.main:app --reload --port 8000
 Build the image and run with docker-compose (the repo contains `Dockerfile` and `docker-compose.yml`):
 
 ```bash
-# build locally (optional)
+# build locally
 docker build -t flowright:latest .
 
 # start services with docker-compose (from project root)
