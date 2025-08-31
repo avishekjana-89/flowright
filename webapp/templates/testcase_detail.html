@@ -40,6 +40,7 @@
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
           <button class="button" type="submit">Save Metadata</button>
           <a class="button ghost" href="/download/{{ tc.filename }}">Download JSON</a>
+          <button class="button small" type="button" id="cloneBtn">Clone</button>
         </div>
       </form>
     </div>
@@ -557,4 +558,34 @@
   Saved</div>
 <script>setTimeout(() => document.getElementById('toast')?.remove(), 2000)</script>
 {% endif %}
+<script>
+  (function(){
+    const btn = document.getElementById('cloneBtn');
+    if (!btn) return;
+    btn.addEventListener('click', async function(){
+      try {
+        btn.disabled = true;
+        const res = await fetch(`/testcases/{{ tc.id }}/clone`, { method: 'POST', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+        if (res.ok) {
+          const ct = (res.headers.get('content-type')||'').toLowerCase();
+          if (ct.includes('application/json')) {
+            const j = await res.json();
+            if (j && j.id) {
+              window.location = '/testcases/' + j.id;
+              return;
+            }
+          }
+          // fallback: if server redirected, follow
+          if (res.redirected) { window.location = res.url; return; }
+          // otherwise reload
+          window.location.reload();
+        } else {
+          const txt = await res.text();
+          alert('Clone failed: ' + res.status + '\n' + txt.substring(0,400));
+        }
+      } catch (e) { alert('Clone error: ' + e); }
+      finally { btn.disabled = false; }
+    });
+  })();
+</script>
 {% endblock %}

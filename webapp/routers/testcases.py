@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import os, json, re, time
+import shutil
 
 from ..utils import STEPS_DIR, DATA_DIR, OBJECTS_DIR, KEYWORDS_DIR, step_path, load_dataset_file
 from ..db import get_db, tc_row_to_dict
@@ -485,4 +486,55 @@ async def testcase_update_meta(tc_id: str, name: str = Form(...), description: s
     conn.commit()
     conn.close()
     return RedirectResponse(f'/testcases/{tc_id}?saved=1', status_code=303)
+
+
+
+@router.post('/testcases/{tc_id}/clone')
+async def testcase_clone(request: Request, tc_id: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM testcases WHERE id=?', (tc_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404)
+    tc = tc_row_to_dict(row)
+    src = step_path(tc['filename'])
+    import uuid
+    new_id = str(uuid.uuid4())
+    new_fn = f'{new_id}.json'
+    dest = step_path(new_fn)
+    try:
+        if os.path.exists(src):
+            shutil.copyfile(src, dest)
+        else:
+            # create an empty steps file if source missing
+            with open(dest, 'w', encoding='utf-8') as f:
+                json.dump([], f)
+    except Exception:
+        # on copy failure, attempt to write empty file
+        try:
+            with open(dest, 'w', encoding='utf-8') as f:
+                json.dump([], f)
+        except Exception:
+            pass
+
+    # make a sensible default name for the cloned testcase
+    src_name = tc.get('name') or 'Testcase'
+    new_name = f"{src_name} (copy)"
+    tags = tc.get('tags') or []
+    tags_str = ','.join([t for t in tags if t])
+    try:
+        cur.execute('INSERT INTO testcases(id,name,description,tags,filename,data_filename,folder_id,object_folder_id,created_at) VALUES (?,?,?,?,?,?,?,?,?)', (
+            new_id, new_name, tc.get('description') or '', tags_str, new_fn, tc.get('data_filename'), tc.get('folder_id'), tc.get('object_folder_id'), time.time()
+        ))
+        conn.commit()
+    finally:
+        conn.close()
+
+    accept = request.headers.get('accept', '').lower()
+    xrw = request.headers.get('x-requested-with', '').lower()
+    if 'application/json' in accept or 'xmlhttprequest' in xrw:
+        return JSONResponse({'ok': True, 'id': new_id})
+    return RedirectResponse(f'/testcases/{new_id}', status_code=303)
 

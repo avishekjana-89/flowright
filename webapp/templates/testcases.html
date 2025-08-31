@@ -207,9 +207,12 @@
               <div style="display:grid;grid-template-columns:2.8fr 100px 80px;gap:12px;align-items:center">
                 <div class="case-name"><a href="/testcases/{{ tc.id }}" style="color:inherit;text-decoration:none">{{ tc.name }}</a></div>
                 <div class="tags">{% for t in tc.tags %}{% if t %}<span class="tag">{{ t }}</span>{% endif %}{% endfor %}</div>
-                <div style="display:flex;justify-content:flex-end">
-                  <form method="post" action="/testcases/{{ tc.id }}/delete" onsubmit="return confirm('Delete this testcase? This will remove the file and DB row.')">
+                <div style="display:flex;justify-content:flex-end;gap:6px">
+                  <form method="post" action="/testcases/{{ tc.id }}/delete" onsubmit="return confirm('Delete this testcase? This will remove the file and DB row.')" style="margin:0">
                     <button class="button ghost small" type="submit" aria-label="Delete testcase">🗑</button>
+                  </form>
+                  <form method="post" action="/testcases/{{ tc.id }}/clone" style="margin:0">
+                    <button class="button small" type="submit" aria-label="Clone testcase">⎘</button>
                   </form>
                 </div>
               </div>
