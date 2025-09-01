@@ -753,8 +753,13 @@ async def run_test(filename_or_steps, run_dir=None, concurrency=None, browser='c
                         steps_sub = [substitute_globals_in_step(s) for s in job_steps]
                         results = await _execute_steps_with_browser(browser, steps_sub, this_run_dir, input_was_file=False, input_filename=None, job_name=job_name)
                         return {'name': job_name, 'run_dir': os.path.basename(this_run_dir), 'results': results}
+                # record wall-clock start time for the batch so aggregate duration
+                # reflects real elapsed time when jobs run concurrently
+                suite_start = time.time()
                 tasks = [asyncio.create_task(_run_job(idx, item)) for idx, item in enumerate(steps_batch)]
                 results_batch = await asyncio.gather(*tasks)
+                suite_end = time.time()
+                batch_elapsed = suite_end - suite_start
             finally:
                 try:
                     await browser.close()
@@ -798,7 +803,9 @@ async def run_test(filename_or_steps, run_dir=None, concurrency=None, browser='c
                 'total_steps': total_steps,
                 'total_passed': total_passed,
                 'total_failed': total_failed,
-                'duration': sum(j.get('duration', 0) for j in suite_summary['jobs'])
+                # Use the wall-clock batch elapsed time so concurrent jobs don't get
+                # summed incorrectly. Fallback to summing job durations if batch_elapsed is not set.
+                'duration': batch_elapsed if 'batch_elapsed' in locals() else sum(j.get('duration', 0) for j in suite_summary['jobs'])
             }
 
             with open(os.path.join(run_dir, 'summary.json'), 'w', encoding='utf-8') as sf:

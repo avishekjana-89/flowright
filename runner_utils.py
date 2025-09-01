@@ -7,6 +7,7 @@ import json
 import re
 import asyncio
 import time
+import datetime
 from typing import Any
 
 # Load profile key/values from env (if provided by webapp)
@@ -25,7 +26,13 @@ def log(msg: Any, *args, **kwargs) -> None:
         task_id = 0
     try:
         ts = time.time()
-        prefix = f"\n[{ts:.3f}] task:{task_id}"
+        # Format timestamp as human-readable local datetime with milliseconds
+        try:
+            human_ts = datetime.datetime.fromtimestamp(ts).isoformat(sep=' ', timespec='milliseconds')
+        except Exception:
+            # Fallback for older Python versions or unusual environments
+            human_ts = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        prefix = f"\n[{human_ts}] task:{task_id}"
     except Exception:
         prefix = f"\ntask:{task_id}"
     try:
