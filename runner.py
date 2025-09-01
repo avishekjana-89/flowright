@@ -586,7 +586,7 @@ async def run_step(state, step):
                         pass
 
                 # control whether to close the dialog after reading (defaults to accept)
-                close_action = step.get('close', 'dismiss')
+                close_action = step.get('close', 'accept')
                 if close_action == 'accept':
                     await dialog.accept()
                 else:
