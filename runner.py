@@ -311,6 +311,30 @@ async def try_locator(context, step, action):
     return False
 
 
+def _to_milliseconds(val):
+    """Convert various duration representations to integer milliseconds.
+
+    Accepts ints/floats or strings like '1.5s' or '1500ms' or '1500'.
+    Returns int milliseconds or None if conversion fails.
+    """
+    if val is None:
+        return None
+    try:
+        if isinstance(val, (int, float)):
+            return int(float(val))
+        if isinstance(val, str):
+            v = val.strip()
+            if not v:
+                return None
+            if v.endswith('ms'):
+                return int(float(v[:-2].strip()))
+            if v.endswith('s'):
+                return int(float(v[:-1].strip()) * 1000)
+            return int(float(v))
+    except Exception:
+        return None
+
+
 async def run_step(state, step):
     """Run a single step. `state` is a mutable dict with at least the key 'page'.
     This allows steps (like switchToWindow) to update the current page so the
@@ -491,6 +515,93 @@ async def run_step(state, step):
     elif step_type == "scroll":
         return True
     
+    elif step_type == "delay":
+        # Support value/ms/duration as number (ms) or strings like '1.5s' or '1500ms'
+        candidates = (step.get('value'), step.get('ms'), step.get('duration'))
+        ms = None
+        for c in candidates:
+            ms = _to_milliseconds(c)
+            if ms is not None:
+                break
+
+        if ms is None:
+            raise ValueError("delay step requires a numeric 'value' or 'ms' (milliseconds) or a string like '1.5s')")
+
+        # Prefer Playwright's wait_for_timeout when available on the context/frame/page
+        waiter = getattr(context, 'wait_for_timeout', None)
+        if waiter is None:
+            pg = getattr(context, 'page', None)
+            waiter = getattr(pg, 'wait_for_timeout', None) if pg is not None else None
+
+        if waiter is not None:
+            await waiter(ms)
+        else:
+            # fallback to asyncio.sleep (seconds)
+            await asyncio.sleep(ms / 1000.0)
+
+        return True
+
+    elif step_type in ("acceptAlert", "dismissAlert", "sendAlertText", "getAlertText"):
+        # Dialog handling: use Playwright's dialog event. `context` may be a Frame
+        # or a Page; prefer the Page object for dialog events.
+        page_for_dialog = getattr(context, 'page', context)
+
+        try:
+            # wait for the next dialog to appear (timeout in ms)
+            dialog = await page_for_dialog.wait_for_event('dialog', timeout=PLAYWRIGHT_DEFAULT_TIMEOUT_MS)
+        except Exception as e:
+            log(f"⚠️ No dialog appeared for {step_type}: {e}")
+            return False
+
+        try:
+            if step_type == "acceptAlert":
+                # optional value (for prompt)
+                prompt_text = step.get('value') or step.get('text') or None
+                if prompt_text is not None:
+                    await dialog.accept(prompt_text)
+                else:
+                    await dialog.accept()
+                return True
+
+            if step_type == "dismissAlert":
+                await dialog.dismiss()
+                return True
+
+            if step_type == "sendAlertText":
+                # send text and accept the prompt
+                prompt_text = step.get('value') or step.get('text')
+                if prompt_text is None:
+                    raise ValueError("sendAlertText requires 'value' or 'text' to send to the prompt")
+                await dialog.accept(prompt_text)
+                return True
+
+            if step_type == "getAlertText":
+                msg = dialog.message
+                # Optionally store the captured message into a local variable
+                if "store_as" in step:
+                    variables[step["store_as"]] = msg
+                    try:
+                        log(f"💾 Stored local variable: {step['store_as']} = {variables.get(step['store_as'])}")
+                    except Exception:
+                        pass
+
+                # control whether to close the dialog after reading (defaults to accept)
+                close_action = step.get('close', 'dismiss')
+                if close_action == 'accept':
+                    await dialog.accept()
+                else:
+                    await dialog.dismiss()
+
+                return msg
+        except Exception as e:
+            log(f"⚠️ Dialog handling for {step_type} failed: {e}")
+            try:
+                # best-effort cleanup
+                await dialog.dismiss()
+            except Exception:
+                pass
+            return False
+    
     elif step_type == "switchToWindow":
         if not value:
             raise ValueError("switchToWindow step requires a non-empty 'value' field with the window name or index")
@@ -574,6 +685,23 @@ async def run_step(state, step):
 
         return text_str
     
+    elif step_type == "getAllText":
+        texts = await try_locator(context, step, lambda sel, ctx: ctx.locator(sel).all_text_contents())
+        
+        if texts is False:
+            return False
+        
+        texts = texts if isinstance(texts, list) else []
+
+        if "store_as" in step:
+            variables[step["store_as"]] = texts
+            try:
+                log(f"💾 Stored local variable: {step['store_as']} = {variables.get(step['store_as'])}")
+            except Exception:
+                pass
+
+        return texts
+    
     elif step_type == "getAttribute":
         if "attributeName" not in step:
             raise ValueError("getAttribute step requires an 'attributeName' field")
@@ -626,8 +754,7 @@ async def run_step(state, step):
         return await try_locator(context, step, drag_and_drop)
     
     else:
-            # unknown step type -> attempt to resolve as custom keyword
-
+        # unknown step type -> attempt to resolve as custom keyword
         # Attempt to resolve custom/user-defined keywords.
         # Resolution order:
         # 1) exact registry lookup by step_type
