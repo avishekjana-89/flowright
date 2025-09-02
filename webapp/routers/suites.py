@@ -8,7 +8,6 @@ from ..utils import RUNS_DIR, step_path, load_dataset_file, _sanitize_name, RUNN
 from ..db import get_db, load_settings
 from .. import db as dbmod
 from ..utils import _atomic_write_bytes
-from ..utils import substitute_step
 from ..main import templates  # reuse templates instance
 
 router = APIRouter()
@@ -232,6 +231,33 @@ async def suite_run(request: Request, suite_id: str, tc_ids: List[str] = Form(No
         runs.append({'row_index': idx, 'pid': proc.pid, 'returncode': None, 'run_dir': rel_run, 'run_id': f'{run_id}_{idx}', 'logfile': rel_log, 'meta': job_meta[idx]})
 
     return JSONResponse({'ok': True, 'runs': runs, 'run_dir': os.path.relpath(run_dir, RUNS_DIR)})
+
+
+@router.get('/suites/{suite_id}/testcases', response_class=JSONResponse)
+async def testcases_for_suite(suite_id: str):
+    """Return all testcases associated with the given suite id as JSON.
+
+    Path param: suite_id
+    Response: {"ok": True, "testcases": [ ... ]}
+    Returns 404 if the suite does not exist.
+    """
+    conn = get_db()
+    cur = conn.cursor()
+    # verify suite exists
+    cur.execute('SELECT id FROM suites WHERE id=?', (suite_id,))
+    prow = cur.fetchone()
+    if not prow:
+        conn.close()
+        raise HTTPException(status_code=404, detail='Suite not found')
+
+    # fetch testcases in suite order
+    cur.execute('SELECT t.* FROM suite_items si JOIN testcases t ON si.tc_id = t.id WHERE si.suite_id = ? ORDER BY si.position ASC', (suite_id,))
+    rows = cur.fetchall()
+    conn.close()
+
+    # return only minimal metadata requested by caller
+    out = [{'id': r['id'], 'name': r['name']} for r in rows]
+    return JSONResponse({'ok': True, 'testcases': out})
 
 
 @router.get('/suites/{suite_id}', response_class=HTMLResponse)

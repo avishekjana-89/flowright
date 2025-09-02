@@ -9,6 +9,7 @@
 
 # Project-level keywords and caches
 /keywords/
+/scripts/
 /__pycache__/
 
 # Environment files
