@@ -298,6 +298,8 @@ async def rename_object_folder(request: Request):
             conn.close()
         except Exception:
             pass
+    # Respond to AJAX callers with JSON so frontend can parse the result.
+    return JSONResponse({'ok': True})
 
 
 @app.get('/keywords/new', response_class=HTMLResponse)
