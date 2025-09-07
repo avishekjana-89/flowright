@@ -40,7 +40,7 @@ async function render() {
 
     const a = document.createElement('td'); a.textContent = it.action || '';
 
-  const s = document.createElement('td'); s.textContent = (it.selectors && it.selectors[0]) || it.selector || '';
+    const s = document.createElement('td'); s.textContent = (it.selectors && it.selectors[0]) || it.selector || '';
 
     const v = document.createElement('td'); v.textContent = (it.value || '');
 
@@ -74,9 +74,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el && typeof el.addEventListener === 'function') el.addEventListener(ev, fn);
     }
 
-    safeOn('startBtn', 'click', () => { chrome.runtime.sendMessage({ type: 'start' }, () => { render(); }); });
-    safeOn('pauseBtn', 'click', () => { chrome.runtime.sendMessage({ type: 'pause' }, () => { render(); }); });
-    safeOn('stopBtn', 'click', () => { chrome.runtime.sendMessage({ type: 'stop' }, () => { render(); }); });
+    // rely on background broadcast ('set-recording') to trigger UI updates
+    safeOn('startBtn', 'click', () => { chrome.runtime.sendMessage({ type: 'start' }); });
+    safeOn('pauseBtn', 'click', () => { chrome.runtime.sendMessage({ type: 'pause' }); });
+    safeOn('stopBtn', 'click', () => { chrome.runtime.sendMessage({ type: 'stop' }); });
     safeOn('clearBtn', 'click', () => { chrome.runtime.sendMessage({ type: 'clear' }, () => { render(); }); });
     safeOn('refreshBtn', 'click', () => { render(); });
     safeOn('dedupeBtn', 'click', () => { chrome.runtime.sendMessage({ type: 'dedupe' }, () => { render(); }); });

@@ -10,7 +10,7 @@ async function render() {
     const i = document.createElement('td'); i.textContent = it.id || (idx + 1);
     const t = document.createElement('td'); t.textContent = new Date(it.timestamp || Date.now()).toLocaleTimeString();
     const a = document.createElement('td'); a.textContent = it.action || '';
-  const s = document.createElement('td'); s.textContent = (it.selectors && it.selectors[0]) || it.selector || '';
+    const s = document.createElement('td'); s.textContent = (it.selectors && it.selectors[0]) || it.selector || '';
     const v = document.createElement('td'); v.textContent = (it.value || '');
     const d = document.createElement('td');
     const btn = document.createElement('button'); btn.textContent = 'Details';
@@ -34,9 +34,10 @@ async function render() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  $id('startBtn').addEventListener('click', () => { chrome.runtime.sendMessage({ type: 'start' }, () => { render(); }); });
-  $id('pauseBtn').addEventListener('click', () => { chrome.runtime.sendMessage({ type: 'pause' }, () => { render(); }); });
-  $id('stopBtn').addEventListener('click', () => { chrome.runtime.sendMessage({ type: 'stop' }, () => { render(); }); });
+  // rely on background broadcast ('set-recording') to trigger UI updates and avoid duplicate renders
+  $id('startBtn').addEventListener('click', () => { chrome.runtime.sendMessage({ type: 'start' }); });
+  $id('pauseBtn').addEventListener('click', () => { chrome.runtime.sendMessage({ type: 'pause' }); });
+  $id('stopBtn').addEventListener('click', () => { chrome.runtime.sendMessage({ type: 'stop' }); });
   $id('refreshBtn').addEventListener('click', () => { render(); });
   $id('dedupeBtn').addEventListener('click', () => { chrome.runtime.sendMessage({ type: 'dedupe' }, () => { render(); }); });
   $id('clearBtn').addEventListener('click', () => { chrome.runtime.sendMessage({ type: 'clear' }, () => { render(); }); });
