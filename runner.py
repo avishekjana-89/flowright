@@ -415,7 +415,7 @@ async def run_step(state, step):
         async def verify(sel, ctx):
             locator = ctx.locator(sel)
             # run contains assertion
-            await expect(locator).to_have_text(re.compile(r".*" + value +".*", re.IGNORECASE))
+            await expect(locator).to_contain_text(value)
 
         return await try_locator(context, step, verify)
     
@@ -423,7 +423,7 @@ async def run_step(state, step):
         async def verify(sel, ctx):
             locator = ctx.locator(sel)
             # run negative contains assertion
-            await expect(locator).not_to_contain_text(re.compile(r".*" + value +".*", re.IGNORECASE))
+            await expect(locator).not_to_contain_text(value)
 
         return await try_locator(context, step, verify)
     
